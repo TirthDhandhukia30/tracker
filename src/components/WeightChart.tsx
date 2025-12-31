@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { ResponsiveContainer, AreaChart, Area, YAxis } from 'recharts';
 import { useTheme } from '@/components/theme-provider';
 import { TrendingDown, TrendingUp, Minus } from 'lucide-react';
