@@ -1,17 +1,20 @@
 import { useNavigate } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, parseISO, isSameDay, isBefore, max } from 'date-fns';
 import { supabase } from '@/lib/supabase';
+import { START_DATE } from '@/lib/constants';
 import type { DailyEntry } from '@/types';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronLeft, ChevronRight, Loader2, ArrowLeft } from 'lucide-react';
+import { haptics } from '@/lib/haptics';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
+import { ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
-
-const START_DATE = new Date('2025-12-31');
 
 export function CalendarPage() {
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion();
   const [month, setMonth] = useState(() => max([new Date(), START_DATE]));
   const [entries, setEntries] = useState<DailyEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -62,55 +65,113 @@ export function CalendarPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header with back button */}
-      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header className="sticky top-0 z-50 w-full glass-nav">
         <div className="flex h-14 items-center px-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="rounded-full mr-3">
-            <ArrowLeft className="h-5 w-5" />
+          <Button 
+            variant="glass" 
+            size="icon" 
+            onClick={() => navigate('/')} 
+            className="rounded-xl mr-3"
+            aria-label="Go back to home"
+          >
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </Button>
-          <span className="font-bold text-lg tracking-tight">Calendar</span>
+          <h1 className="font-bold text-lg tracking-tight">Calendar</h1>
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-6 max-w-sm mx-auto w-full space-y-8">
+      <main className="flex-1 px-4 py-6 max-w-sm mx-auto w-full space-y-8" role="main">
         {/* Month Navigation */}
-        <div className="flex items-center justify-between w-full">
-          <Button variant="ghost" size="icon" onClick={prevMonth} disabled={!canGoPrev} className={cn(!canGoPrev && "opacity-30")}>
-            <ChevronLeft className="h-5 w-5" />
+        <nav className="flex items-center justify-between w-full glass-subtle p-2 rounded-2xl" aria-label="Month navigation">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => {
+              haptics.light();
+              prevMonth();
+            }} 
+            disabled={!canGoPrev} 
+            className={cn("rounded-xl", !canGoPrev && "opacity-30")}
+            aria-label="Previous month"
+          >
+            <ChevronLeft className="h-5 w-5" aria-hidden="true" />
           </Button>
           <div className="text-center">
-            <h1 className="text-xl font-bold tracking-tight">{format(month, 'MMMM yyyy')}</h1>
+            <h2 className="text-xl font-bold tracking-tight" aria-live="polite">{format(month, 'MMMM yyyy')}</h2>
           </div>
-          <Button variant="ghost" size="icon" onClick={nextMonth}>
-            <ChevronRight className="h-5 w-5" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => {
+              haptics.light();
+              nextMonth();
+            }}
+            className="rounded-xl"
+            aria-label="Next month"
+          >
+            <ChevronRight className="h-5 w-5" aria-hidden="true" />
           </Button>
-        </div>
+        </nav>
 
         {loading ? (
-          <div className="h-64 flex items-center justify-center">
-            <Loader2 className="animate-spin h-8 w-8 text-primary/30" />
+          <div className="space-y-4" aria-busy="true" aria-label="Loading calendar">
+            <div className="grid grid-cols-7 gap-3 w-full">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                <div key={i} className="text-center text-xs font-bold text-muted-foreground mb-2">{d}</div>
+              ))}
+              {Array.from({ length: 35 }).map((_, i) => (
+                <Skeleton key={i} className="aspect-square rounded-xl" />
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-7 gap-3 w-full">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-              <div key={i} className="text-center text-xs font-bold text-muted-foreground mb-2">{d}</div>
-            ))}
+          <div className="glass-card p-4 rounded-3xl">
+            <div className="grid grid-cols-7 gap-3 w-full" role="grid" aria-label="Calendar">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                <div 
+                  key={i} 
+                  className="text-center text-xs font-bold text-muted-foreground mb-2"
+                  role="columnheader"
+                  aria-label={['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][i]}
+                >
+                  {d}
+                </div>
+              ))}
 
-            {Array.from({ length: startOfMonth(month).getDay() }).map((_, i) => (
-              <div key={`empty-${i}`} />
-            ))}
+              {Array.from({ length: startOfMonth(month).getDay() }).map((_, i) => (
+                <div key={`empty-${i}`} role="gridcell" aria-hidden="true" />
+              ))}
 
-            {days.map((day, i) => {
-              const entry = getEntry(day);
-              const isToday = isSameDay(day, new Date());
-              const isDisabled = isBefore(day, START_DATE);
-              return (
-                <motion.div
-                  key={i}
-                  whileHover={!isDisabled ? { scale: 1.1 } : undefined}
-                  whileTap={!isDisabled ? { scale: 0.95 } : undefined}
-                  onClick={() => !isDisabled && navigate(`/date/${format(day, 'yyyy-MM-dd')}`)}
+              {days.map((day, i) => {
+                const entry = getEntry(day);
+                const isToday = isSameDay(day, new Date());
+                const isDisabled = isBefore(day, START_DATE);
+                const gymType = entry?.gym_type;
+                const gymLabel = gymType === 'push' ? 'P' : gymType === 'pull' ? 'U' : gymType === 'legs' ? 'L' : null;
+                const statusLabel = entry 
+                  ? (entry.book_reading && entry.work_done && entry.gym_type !== 'rest' 
+                      ? 'all habits completed' 
+                      : 'some habits completed')
+                  : 'no entry';
+                
+                return (
+                  <motion.button
+                    key={i}
+                    whileHover={!isDisabled && !prefersReducedMotion ? { scale: 1.1 } : undefined}
+                    whileTap={!isDisabled && !prefersReducedMotion ? { scale: 0.95 } : undefined}
+                    onClick={() => {
+                    if (!isDisabled) {
+                      haptics.light();
+                      navigate(`/date/${format(day, 'yyyy-MM-dd')}`);
+                    }
+                  }}
+                  disabled={isDisabled}
+                  role="gridcell"
+                  aria-label={`${format(day, 'MMMM d, yyyy')}, ${statusLabel}${gymType && gymType !== 'rest' ? `, ${gymType} day` : ''}${isToday ? ', today' : ''}`}
+                  aria-current={isToday ? 'date' : undefined}
+                  aria-disabled={isDisabled}
                   className={cn(
-                    "aspect-square rounded-xl flex items-center justify-center text-sm font-medium transition-all border border-transparent relative overflow-hidden",
+                    "aspect-square rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all border border-transparent relative overflow-hidden",
                     isDisabled ? "cursor-not-allowed" : "cursor-pointer",
                     getStatusColor(day, entry),
                     isToday && !isDisabled && "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background"
@@ -122,31 +183,45 @@ export function CalendarPage() {
                   )}>
                     {format(day, 'd')}
                   </span>
+                  
+                  {/* Gym type indicator */}
+                  {gymLabel && !isDisabled && (
+                    <span className="text-[8px] font-bold z-10 text-primary-foreground/80 -mt-0.5" aria-hidden="true">
+                      {gymLabel}
+                    </span>
+                  )}
 
                   {entry?.book_reading && entry?.work_done && !isDisabled && (
-                    <div className="absolute inset-0 bg-white/20" />
+                    <div className="absolute inset-0 bg-white/20" aria-hidden="true" />
                   )}
-                </motion.div>
+                </motion.button>
               );
             })}
+            </div>
           </div>
         )}
 
         {/* Stats Summary */}
-        <div className="grid grid-cols-3 gap-4 w-full pt-4">
-          <div className="bg-card border rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-1">
-            <span className="text-2xl font-bold">{entries.filter(e => e.gym_type !== 'rest').length}</span>
+        <section className="grid grid-cols-3 gap-4 w-full pt-4" aria-label="Monthly statistics">
+          <div className="glass-card rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-1">
+            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent" aria-label={`${entries.filter(e => e.gym_type !== 'rest').length} workouts`}>
+              {entries.filter(e => e.gym_type !== 'rest').length}
+            </span>
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Workouts</span>
           </div>
-          <div className="bg-card border rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-1">
-            <span className="text-2xl font-bold">{entries.filter(e => e.book_reading).length}</span>
+          <div className="glass-card rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-1">
+            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent" aria-label={`${entries.filter(e => e.book_reading).length} reading days`}>
+              {entries.filter(e => e.book_reading).length}
+            </span>
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Reading</span>
           </div>
-          <div className="bg-card border rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-1">
-            <span className="text-2xl font-bold">{entries.filter(e => e.work_done).length}</span>
+          <div className="glass-card rounded-2xl p-4 flex flex-col items-center justify-center text-center space-y-1">
+            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent" aria-label={`${entries.filter(e => e.work_done).length} deep work days`}>
+              {entries.filter(e => e.work_done).length}
+            </span>
             <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Deep Work</span>
           </div>
-        </div>
+        </section>
       </main>
     </div>
   );

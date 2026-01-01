@@ -96,7 +96,9 @@ export function useDailyEntry(dateStr: string) {
       const payload = {
         date: entryToSave.date,
         book_reading: entryToSave.book_reading,
+        reading_note: entryToSave.reading_note || null,
         work_done: entryToSave.work_done,
+        work_note: entryToSave.work_note || null,
         gym_type: entryToSave.gym_type,
         exercises: entryToSave.exercises,
         current_weight: entryToSave.current_weight || null,

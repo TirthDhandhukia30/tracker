@@ -1,9 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { format, subDays, startOfMonth, endOfMonth, max } from 'date-fns';
+import { START_DATE, WEIGHT_HISTORY_DAYS } from '@/lib/constants';
 import type { DailyEntry } from '@/types';
-
-const START_DATE = new Date('2025-12-31');
 
 export function useHomeData() {
   const today = new Date();
@@ -32,8 +31,8 @@ export function useHomeData() {
         .gte('date', start)
         .lte('date', end);
 
-      // 3. Fetch Weight History (Last 30 days)
-      const thirtyDaysAgo = subDays(effectiveToday, 30);
+      // 3. Fetch Weight History (Last N days)
+      const thirtyDaysAgo = subDays(effectiveToday, WEIGHT_HISTORY_DAYS);
       const weightStart = max([thirtyDaysAgo, START_DATE]);
       const weightPromise = supabase
         .from('daily_entries')
@@ -58,7 +57,7 @@ export function useHomeData() {
       const yesterday = subDays(effectiveToday, 1);
       const yesterdayStr = format(yesterday, 'yyyy-MM-dd');
       // Look for yesterday in month data first
-      let yesterdayEntry = monthRes.data?.find((e: any) => e.date === yesterdayStr);
+      const yesterdayEntry = monthRes.data?.find((e: DailyEntry) => e.date === yesterdayStr);
 
       // If not in month (e.g. yesterday was last month), fetch separate (optional, skip for now for speed)
       // For simplicity/speed, we'll only show yesterday if it's in the current month or we fetch it.

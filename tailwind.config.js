@@ -8,12 +8,26 @@ export default {
   theme: {
   	extend: {
   		fontFamily: {
-  			sans: ['Inter', 'sans-serif']
+  			sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'Inter', 'sans-serif']
   		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
-  			sm: 'calc(var(--radius) - 4px)'
+  			sm: 'calc(var(--radius) - 4px)',
+  			'2xl': '1.5rem',
+  			'3xl': '2rem'
+  		},
+  		backdropBlur: {
+  			xs: '2px',
+  			'2xl': '40px',
+  			'3xl': '64px'
+  		},
+  		boxShadow: {
+  			'glass': '0 8px 32px rgba(0, 0, 0, 0.08)',
+  			'glass-lg': '0 16px 48px rgba(0, 0, 0, 0.12)',
+  			'glass-inset': 'inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+  			'glow': '0 0 20px rgba(59, 130, 246, 0.3)',
+  			'glow-lg': '0 0 40px rgba(59, 130, 246, 0.4)'
   		},
   		colors: {
   			background: 'hsl(var(--background))',

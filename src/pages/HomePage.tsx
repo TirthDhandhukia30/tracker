@@ -2,10 +2,13 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, getDayOfYear } from 'date-fns';
 import { useHomeData } from '@/hooks/useHomeData';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { cn } from '@/lib/utils';
+import { haptics } from '@/lib/haptics';
 import { motion } from 'framer-motion';
-import { BookOpen, Briefcase, Dumbbell, Loader2, CheckCircle2, ArrowRight, Quote } from 'lucide-react';
+import { BookOpen, Briefcase, Dumbbell, CheckCircle2, ArrowRight, Quote } from 'lucide-react';
 import { WeightChart } from '@/components/WeightChart';
+import { Skeleton, SkeletonCard, SkeletonChart, SkeletonCalendar } from '@/components/ui/skeleton';
 
 const QUOTES = [
   { text: "The only bad workout is the one that didn't happen.", author: "Unknown" },
@@ -21,8 +24,21 @@ const QUOTES = [
 
 export function HomePage() {
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion();
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
+
+  // Animation variants that respect reduced motion
+  const fadeInUp = prefersReducedMotion 
+    ? { initial: {}, animate: {} }
+    : { 
+        initial: { opacity: 0, y: 10 },
+        animate: { opacity: 1, y: 0 }
+      };
+
+  const springTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { type: 'spring', stiffness: 400, damping: 30 };
 
   const quote = useMemo(() => {
     const dayIndex = getDayOfYear(today);
@@ -49,47 +65,85 @@ export function HomePage() {
     ? [todayEntry.book_reading, todayEntry.work_done, todayEntry.gym_type !== 'rest'].filter(Boolean).length === 3
     : false;
 
-  const HabitIcon = ({ active, icon: Icon }: { active: boolean; icon: any }) => (
-    <div className={cn(
-      "h-8 w-8 rounded-full flex items-center justify-center transition-colors",
-      active ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-    )}>
-      <Icon className="h-4 w-4" />
+  const HabitIcon = ({ active, icon: Icon, label, onDarkBg }: { active: boolean; icon: React.FC<{ className?: string }>; label: string; onDarkBg?: boolean }) => (
+    <div 
+      className={cn(
+        "h-9 w-9 rounded-xl flex items-center justify-center transition-all duration-300",
+        onDarkBg
+          ? active 
+            ? "bg-white/20 text-white shadow-lg backdrop-blur-sm" 
+            : "bg-white/10 text-white/60 backdrop-blur-sm"
+          : active
+            ? "bg-primary text-primary-foreground shadow-glow"
+            : "bg-secondary/80 text-muted-foreground"
+      )}
+      role="img"
+      aria-label={`${label}: ${active ? 'completed' : 'not completed'}`}
+    >
+      <Icon className="h-4 w-4" aria-hidden="true" />
     </div>
   );
+
+  const handleNavigate = (path: string) => {
+    haptics.light();
+    navigate(path);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
       {/* Header */}
       <header className="px-6 pt-12 pb-6">
-        <h1 className="text-3xl font-bold tracking-tight">
+        <motion.h1 
+          {...fadeInUp}
+          transition={springTransition}
+          className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text"
+        >
           {format(today, 'EEEE')}
-        </h1>
-        <p className="text-muted-foreground font-medium mt-1">
+        </motion.h1>
+        <motion.p 
+          {...fadeInUp}
+          transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.05 }}
+          className="text-muted-foreground font-medium mt-1"
+        >
           {format(today, 'MMMM do')}
-        </p>
+        </motion.p>
       </header>
 
       {isLoading ? (
-        <div className="flex items-center justify-center p-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
+        <main className="px-4 space-y-8 max-w-md mx-auto" aria-busy="true" aria-label="Loading content">
+          <SkeletonCard />
+          <SkeletonChart />
+          <SkeletonCalendar />
+          <div className="px-4 py-6 text-center space-y-3">
+            <Skeleton className="h-4 w-4 mx-auto rounded-full" />
+            <Skeleton className="h-12 w-48 mx-auto" />
+            <Skeleton className="h-3 w-24 mx-auto" />
+          </div>
+        </main>
       ) : (
-        <main className="px-4 space-y-8 max-w-md mx-auto">
+        <main className="px-4 space-y-8 max-w-md mx-auto" role="main">
 
           {/* Today Card */}
           <motion.button
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => navigate(`/date/${todayStr}`)}
+            {...fadeInUp}
+            transition={springTransition}
+            whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
+            onClick={() => handleNavigate(`/date/${todayStr}`)}
+            aria-label={isTodayComplete 
+              ? "Today's entry complete. Tap to view or edit." 
+              : "Log today's habits and workout. Tap to open."}
             className={cn(
-              "w-full group relative overflow-hidden rounded-[2rem] p-6 text-left transition-all",
+              "w-full group relative overflow-hidden rounded-3xl p-6 text-left transition-all",
               isTodayComplete
-                ? "bg-primary text-primary-foreground"
-                : "bg-card border border-border/50 shadow-sm hover:shadow-md hover:border-border"
+                ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-glow-lg"
+                : "glass-card hover:shadow-glass-lg"
             )}
           >
+            {/* Liquid glass shimmer overlay */}
+            {!isTodayComplete && (
+              <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/5 pointer-events-none" aria-hidden="true" />
+            )}
+            
             <div className="relative z-10 flex flex-col h-full justify-between gap-4">
               <div className="flex items-start justify-between">
                 <div>
@@ -101,18 +155,20 @@ export function HomePage() {
                   </p>
                 </div>
                 {isTodayComplete ? (
-                  <CheckCircle2 className="h-6 w-6 text-primary-foreground" />
+                  <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <CheckCircle2 className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
+                  </div>
                 ) : (
-                  <div className="h-8 w-8 rounded-full bg-secondary flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                  <div className="h-10 w-10 rounded-xl bg-primary/10 backdrop-blur-sm flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300" aria-hidden="true">
                     <ArrowRight className="h-4 w-4" />
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 mt-4">
-                <HabitIcon icon={BookOpen} active={todayEntry?.book_reading || false} />
-                <HabitIcon icon={Briefcase} active={todayEntry?.work_done || false} />
-                <HabitIcon icon={Dumbbell} active={(todayEntry?.gym_type || 'rest') !== 'rest'} />
+              <div className="flex items-center gap-2 mt-4" role="list" aria-label="Today's habit status">
+                <HabitIcon icon={BookOpen} active={todayEntry?.book_reading || false} label="Reading" onDarkBg={isTodayComplete} />
+                <HabitIcon icon={Briefcase} active={todayEntry?.work_done || false} label="Work" onDarkBg={isTodayComplete} />
+                <HabitIcon icon={Dumbbell} active={(todayEntry?.gym_type || 'rest') !== 'rest'} label="Workout" onDarkBg={isTodayComplete} />
               </div>
             </div>
           </motion.button>
@@ -120,9 +176,9 @@ export function HomePage() {
           {/* Weight Chart */}
           {weightData.length > 0 && (
             <motion.section
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
+              {...fadeInUp}
+              transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.1 }}
+              aria-label="Weight tracking chart"
             >
               <WeightChart data={weightData} />
             </motion.section>
@@ -130,40 +186,44 @@ export function HomePage() {
 
           {/* Monthly Consistency */}
           <motion.section
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            {...fadeInUp}
+            transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.2 }}
             className="pb-4"
+            aria-label="Monthly consistency calendar"
           >
             <div className="flex items-center justify-between mb-4 px-2">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Consistency</h3>
-              <span className="text-xs font-medium bg-secondary px-2 py-1 rounded-full">
+              <span className="text-xs font-medium glass-subtle px-3 py-1.5 rounded-full">
                 {format(today, 'MMMM')}
               </span>
             </div>
 
-            <div className="bg-card/50 rounded-3xl p-5 border border-border/50">
-              <div className="grid grid-cols-7 gap-y-3 gap-x-1">
+            <div className="glass-card rounded-3xl p-5" role="grid" aria-label="Calendar grid">
+              <div className="grid grid-cols-7 gap-y-3 gap-x-1" role="row">
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                  <div key={i} className="text-center text-[10px] font-medium text-muted-foreground/70">{d}</div>
+                  <div key={i} className="text-center text-[10px] font-medium text-muted-foreground/70" role="columnheader" aria-label={['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][i]}>{d}</div>
                 ))}
 
                 {Array.from({ length: startOfMonth(today).getDay() }).map((_, i) => (
-                  <div key={`empty-${i}`} />
+                  <div key={`empty-${i}`} role="gridcell" aria-hidden="true" />
                 ))}
 
                 {monthDays.map((day, i) => {
                   const status = getDayStatus(day);
                   const isToday = isSameDay(day, today);
+                  const statusLabel = status === 'perfect' ? 'all habits completed' : status === 'partial' ? 'some habits completed' : 'no habits logged';
                   return (
                     <button
                       key={i}
-                      onClick={() => navigate(`/date/${format(day, 'yyyy-MM-dd')}`)}
+                      onClick={() => handleNavigate(`/date/${format(day, 'yyyy-MM-dd')}`)}
+                      role="gridcell"
+                      aria-label={`${format(day, 'MMMM d')}, ${statusLabel}${isToday ? ', today' : ''}`}
+                      aria-current={isToday ? 'date' : undefined}
                       className={cn(
-                        "aspect-square mx-auto w-8 rounded-full flex items-center justify-center text-[10px] font-medium transition-all relative",
-                        status === 'perfect' && "bg-primary text-primary-foreground font-bold",
-                        status === 'partial' && "bg-primary/20 text-primary-foreground dark:text-primary",
-                        status === 'empty' && "text-muted-foreground hover:bg-secondary",
+                        "aspect-square mx-auto w-8 rounded-xl flex items-center justify-center text-[10px] font-medium transition-all relative",
+                        status === 'perfect' && "bg-primary text-primary-foreground font-bold shadow-glow",
+                        status === 'partial' && "bg-primary/20 text-primary font-medium",
+                        status === 'empty' && "text-muted-foreground hover:bg-secondary/50",
                         isToday && "ring-2 ring-primary ring-offset-2 ring-offset-background"
                       )}
                     >
@@ -176,18 +236,22 @@ export function HomePage() {
           </motion.section>
 
           {/* Daily Quote */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="px-4 py-6 text-center"
+          <motion.aside
+            {...fadeInUp}
+            transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.3 }}
+            className="px-4 py-6"
+            aria-label="Daily inspiration"
           >
-            <Quote className="h-4 w-4 mx-auto text-muted-foreground/50 mb-3" />
-            <p className="text-sm font-medium text-foreground/80 italic leading-relaxed max-w-xs mx-auto">
-              "{quote.text}"
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">— {quote.author}</p>
-          </motion.div>
+            <div className="glass-subtle rounded-2xl p-5 text-center">
+              <Quote className="h-4 w-4 mx-auto text-primary/50 mb-3" aria-hidden="true" />
+              <blockquote>
+                <p className="text-sm font-medium text-foreground/80 italic leading-relaxed max-w-xs mx-auto">
+                  "{quote.text}"
+                </p>
+                <footer className="text-xs text-muted-foreground mt-3">— {quote.author}</footer>
+              </blockquote>
+            </div>
+          </motion.aside>
 
         </main>
       )}

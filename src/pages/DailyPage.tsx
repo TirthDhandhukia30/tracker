@@ -1,13 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format, parseISO, isValid, getDayOfYear } from 'date-fns';
 import { useDailyEntry } from '@/hooks/useDailyEntry';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Loader2, Plus, Trash2, Check, BookOpen, Briefcase, History, Sparkles } from 'lucide-react';
+import { Skeleton, SkeletonHabitButton, SkeletonExercise } from '@/components/ui/skeleton';
+import { ArrowLeft, Plus, Trash2, Check, BookOpen, Briefcase, History, Sparkles } from 'lucide-react';
 import type { GymType, Exercise } from '@/types';
 import { cn } from '@/lib/utils';
+import { haptics } from '@/lib/haptics';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 
@@ -44,6 +47,26 @@ export function DailyPage() {
   }, [dateStr]);
 
   const { entry, setEntry, status, toggleHabit, copyLastWorkout } = useDailyEntry(dateStr);
+  const prefersReducedMotion = useReducedMotion();
+  const noteTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea on content change
+  const resizeTextarea = useCallback(() => {
+    const textarea = noteTextareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = textarea.scrollHeight + 'px';
+    }
+  }, []);
+
+  useEffect(() => {
+    resizeTextarea();
+  }, [entry.note, resizeTextarea]);
+
+  const handleToggleHabit = (key: 'book_reading' | 'work_done') => {
+    haptics.light();
+    toggleHabit(key);
+  };
 
   const updateEntry = (updates: Partial<typeof entry>) => {
     setEntry(prev => ({ ...prev, ...updates }));
@@ -83,27 +106,66 @@ export function DailyPage() {
   const handleCopyWorkout = async () => {
     const gymType = entry.gym_type;
     if (gymType === 'rest') return;
+    haptics.medium();
 
     toast.promise(copyLastWorkout(gymType), {
       loading: 'Loading...',
-      success: (found) => found ? `Loaded last ${gymType}` : 'No history',
-      error: 'Failed'
+      success: (found) => {
+        if (found) haptics.success();
+        return found ? `Loaded last ${gymType}` : 'No history';
+      },
+      error: () => {
+        haptics.error();
+        return 'Failed';
+      }
     });
   };
 
-  const StatusDot = () => (
-    <div className={cn(
-      "h-2 w-2 rounded-full transition-colors",
-      status === 'saving' && "bg-yellow-500 animate-pulse",
-      status === 'synced' && "bg-green-500",
-      status === 'error' && "bg-destructive"
-    )} />
-  );
+  const StatusDot = () => {
+    const statusLabel = status === 'saving' ? 'Saving changes' : status === 'synced' ? 'All changes saved' : status === 'error' ? 'Error saving' : 'Loading';
+    return (
+      <div 
+        className={cn(
+          "h-2 w-2 rounded-full transition-colors",
+          status === 'saving' && "bg-yellow-500 animate-pulse",
+          status === 'synced' && "bg-green-500",
+          status === 'error' && "bg-destructive"
+        )}
+        role="status"
+        aria-label={statusLabel}
+        title={statusLabel}
+      />
+    );
+  };
 
   if (status === 'loading') {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      <div className="min-h-screen bg-background text-foreground pb-32" aria-busy="true" aria-label="Loading entry">
+        <header className="sticky top-0 z-50 glass-nav">
+          <div className="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
+            <Skeleton className="h-9 w-9 rounded-xl" />
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-2 w-2 rounded-full" />
+          </div>
+        </header>
+        <main className="max-w-lg mx-auto px-6 py-8 space-y-10">
+          <div className="flex flex-col items-center">
+            <Skeleton className="h-24 w-48" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <SkeletonHabitButton />
+            <SkeletonHabitButton />
+          </div>
+          <div className="space-y-3">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-20 w-full rounded-xl" />
+          </div>
+          <div className="space-y-5">
+            <Skeleton className="h-12 w-full rounded-xl" />
+            <SkeletonExercise />
+            <SkeletonExercise />
+          </div>
+        </main>
       </div>
     );
   }
@@ -111,113 +173,194 @@ export function DailyPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-32">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/40">
+      <header className="sticky top-0 z-50 glass-nav">
         <div className="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="-ml-2">
-            <ArrowLeft className="h-5 w-5" />
+          <Button 
+            variant="glass" 
+            size="icon" 
+            onClick={() => navigate('/')} 
+            className="-ml-2 rounded-xl"
+            aria-label="Go back to home"
+          >
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </Button>
-          <span className="text-sm font-semibold">{format(parseISO(dateStr), 'EEEE, MMM d')}</span>
+          <h1 className="text-sm font-semibold">{format(parseISO(dateStr), 'EEEE, MMM d')}</h1>
           <div className="w-9 flex justify-end"><StatusDot /></div>
         </div>
       </header>
 
-      <main className="max-w-lg mx-auto px-6 py-8 space-y-10">
+      <main className="max-w-lg mx-auto px-6 py-8 space-y-10" role="main">
 
         {/* Weight */}
-        <section className="flex flex-col items-center justify-center">
+        <section className="flex flex-col items-center justify-center" aria-label="Body weight">
           <div className="relative">
+            <label htmlFor="weight-input" className="sr-only">Body weight in kilograms</label>
             <Input
+              id="weight-input"
               type="number"
               inputMode="decimal"
               placeholder="—"
               value={entry.current_weight || ''}
               onChange={(e) => updateEntry({ current_weight: parseFloat(e.target.value) || undefined })}
+              aria-describedby="weight-unit"
               className="h-24 w-48 text-center text-5xl font-bold bg-transparent border-0 focus-visible:ring-0 p-0 tracking-tight placeholder:text-muted/20"
             />
-            <span className="absolute -right-4 top-8 text-lg font-medium text-muted-foreground select-none">kg</span>
+            <span id="weight-unit" className="absolute -right-4 top-8 text-lg font-medium text-muted-foreground select-none" aria-hidden="true">kg</span>
           </div>
         </section>
 
         {/* Habits */}
-        <section className="grid grid-cols-2 gap-4">
-          {[
-            { key: 'book_reading', label: 'Read', icon: BookOpen },
-            { key: 'work_done', label: 'Work', icon: Briefcase }
-          ].map(({ key, label, icon: Icon }) => (
+        <section className="space-y-4" aria-label="Daily habits">
+          {/* Reading */}
+          <div className="space-y-2">
             <motion.button
-              key={key}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => toggleHabit(key as 'book_reading' | 'work_done')}
+              whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
+              onClick={() => handleToggleHabit('book_reading')}
+              role="switch"
+              aria-checked={entry.book_reading}
+              aria-label={`Reading: ${entry.book_reading ? 'completed' : 'not completed'}. Tap to toggle.`}
               className={cn(
-                "h-16 rounded-2xl flex items-center justify-between px-5 transition-all border select-none",
-                entry[key as 'book_reading' | 'work_done']
-                  ? "bg-primary border-primary text-primary-foreground"
-                  : "bg-card border-border hover:border-primary/50"
+                "w-full h-14 rounded-2xl flex items-center justify-between px-5 transition-all select-none",
+                entry.book_reading
+                  ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-glow"
+                  : "glass-card hover:shadow-glass-lg"
               )}
             >
               <div className="flex items-center gap-3">
-                <Icon className="h-5 w-5" />
-                <span className="font-medium">{label}</span>
+                <BookOpen className="h-5 w-5" aria-hidden="true" />
+                <span className="font-medium">Reading</span>
               </div>
-              {entry[key as 'book_reading' | 'work_done'] && <Check className="h-5 w-5" />}
+              {entry.book_reading && <Check className="h-5 w-5" aria-hidden="true" />}
             </motion.button>
-          ))}
+            
+            {entry.book_reading && (
+              <motion.div
+                initial={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 30 }}
+              >
+                <Input
+                  placeholder="What did you read?"
+                  value={entry.reading_note || ''}
+                  onChange={(e) => updateEntry({ reading_note: e.target.value })}
+                  aria-label="What did you read?"
+                  className="glass-input rounded-xl px-4 py-3 text-sm"
+                />
+              </motion.div>
+            )}
+          </div>
+
+          {/* Work */}
+          <div className="space-y-2">
+            <motion.button
+              whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
+              onClick={() => handleToggleHabit('work_done')}
+              role="switch"
+              aria-checked={entry.work_done}
+              aria-label={`Work: ${entry.work_done ? 'completed' : 'not completed'}. Tap to toggle.`}
+              className={cn(
+                "w-full h-14 rounded-2xl flex items-center justify-between px-5 transition-all select-none",
+                entry.work_done
+                  ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-glow"
+                  : "glass-card hover:shadow-glass-lg"
+              )}
+            >
+              <div className="flex items-center gap-3">
+                <Briefcase className="h-5 w-5" aria-hidden="true" />
+                <span className="font-medium">Work</span>
+              </div>
+              {entry.work_done && <Check className="h-5 w-5" aria-hidden="true" />}
+            </motion.button>
+            
+            {entry.work_done && (
+              <motion.div
+                initial={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 30 }}
+              >
+                <Input
+                  placeholder="What did you work on?"
+                  value={entry.work_note || ''}
+                  onChange={(e) => updateEntry({ work_note: e.target.value })}
+                  aria-label="What did you work on?"
+                  className="glass-input rounded-xl px-4 py-3 text-sm"
+                />
+              </motion.div>
+            )}
+          </div>
         </section>
 
         {/* The One Question */}
-        <section className="space-y-3">
+        <section className="space-y-3" aria-label="Daily reflection">
           <div className="flex items-center gap-2 pl-1">
-            <Sparkles className="h-3 w-3 text-primary/60" />
-            <p className="text-sm font-medium text-foreground/80">{dailyPrompt}</p>
+            <Sparkles className="h-3 w-3 text-primary/60" aria-hidden="true" />
+            <label htmlFor="daily-note" className="text-sm font-medium text-foreground/80">{dailyPrompt}</label>
           </div>
           <Textarea
+            ref={noteTextareaRef}
+            id="daily-note"
             placeholder="..."
             value={entry.note || ''}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateEntry({ note: e.target.value })}
-            className="min-h-[80px] bg-card/30 border-0 resize-none focus-visible:ring-0 px-4 py-3 text-base leading-relaxed placeholder:text-muted-foreground/20 rounded-xl"
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+              updateEntry({ note: e.target.value });
+            }}
+            aria-label={dailyPrompt}
+            className="min-h-[80px] glass-subtle border-0 resize-none focus-visible:ring-0 px-4 py-3 text-base leading-relaxed placeholder:text-muted-foreground/20 rounded-2xl overflow-hidden"
           />
         </section>
 
         {/* Workout */}
-        <section className="space-y-5">
-          <div className="bg-secondary/50 p-1 rounded-xl flex gap-1">
-            {GYM_TYPES.map((type) => (
-              <button
-                key={type.value}
-                onClick={() => updateEntry({ gym_type: type.value as GymType })}
-                className={cn(
-                  "flex-1 py-3 text-sm font-medium rounded-lg transition-all",
-                  entry.gym_type === type.value
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {type.label}
-              </button>
-            ))}
+        <section className="space-y-5" aria-label="Workout tracking">
+          <div className="glass-card p-1.5 rounded-2xl flex gap-1" role="radiogroup" aria-label="Workout type">
+            {GYM_TYPES.map((type) => {
+              const isSelected = entry.gym_type === type.value;
+              return (
+                <button
+                  key={type.value}
+                  onClick={() => {
+                    haptics.selection();
+                    updateEntry({ gym_type: type.value as GymType });
+                  }}
+                  role="radio"
+                  aria-checked={isSelected}
+                  className={cn(
+                    "flex-1 py-3 text-sm font-medium rounded-xl transition-all",
+                    isSelected
+                      ? "bg-primary text-primary-foreground shadow-glow"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                  )}
+                >
+                  {type.label}
+                </button>
+              );
+            })}
           </div>
 
           <AnimatePresence mode="wait">
             {entry.gym_type !== 'rest' && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
+                initial={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
+                exit={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
+                transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 30 }}
                 className="space-y-6"
               >
                 <button
                   onClick={handleCopyWorkout}
-                  className="w-full py-3 text-sm text-primary/70 hover:text-primary font-medium flex items-center justify-center gap-2 border-2 border-dashed border-border/50 rounded-xl hover:border-primary/30 transition-colors"
+                  aria-label={`Copy exercises from your last ${entry.gym_type} workout`}
+                  className="w-full py-3 text-sm text-primary/70 hover:text-primary font-medium flex items-center justify-center gap-2 glass-subtle rounded-2xl hover:shadow-glass transition-all"
                 >
-                  <History className="h-4 w-4" />
+                  <History className="h-4 w-4" aria-hidden="true" />
                   Repeat last {entry.gym_type}
                 </button>
 
-                <div className="space-y-5">
+                <div className="space-y-5" role="list" aria-label="Exercises">
                   {entry.exercises?.map((exercise, index) => (
-                    <div key={index} className="group">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div key={index} className="group glass-card rounded-2xl p-4" role="listitem">
+                      <div className="flex items-center gap-2 mb-3">
+                        <label htmlFor={`exercise-name-${index}`} className="sr-only">Exercise name</label>
                         <Input
+                          id={`exercise-name-${index}`}
                           placeholder="Exercise"
                           value={exercise.name}
                           onChange={(e) => updateExercise(index, { ...exercise, name: e.target.value })}
@@ -225,17 +368,20 @@ export function DailyPage() {
                         />
                         <button
                           onClick={() => removeExercise(index)}
-                          className="p-2 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                          aria-label={`Remove ${exercise.name || 'exercise'}`}
+                          className="p-2 opacity-0 group-hover:opacity-100 focus:opacity-100 text-muted-foreground hover:text-destructive transition-all rounded-lg hover:bg-destructive/10"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                       </div>
 
-                      <div className="pl-3 border-l-2 border-border/40 space-y-2">
+                      <div className="pl-3 border-l-2 border-primary/20 space-y-2" role="list" aria-label={`Sets for ${exercise.name || 'exercise'}`}>
                         {exercise.sets.map((set, setIndex) => (
-                          <div key={setIndex} className="flex items-center gap-3 text-sm">
-                            <span className="w-4 text-xs text-muted-foreground/60 font-mono">{setIndex + 1}</span>
+                          <div key={setIndex} className="flex items-center gap-3 text-sm" role="listitem">
+                            <span className="w-4 text-xs text-muted-foreground/60 font-mono" aria-hidden="true">{setIndex + 1}</span>
+                            <label htmlFor={`reps-${index}-${setIndex}`} className="sr-only">Reps for set {setIndex + 1}</label>
                             <Input
+                              id={`reps-${index}-${setIndex}`}
                               type="number"
                               inputMode="decimal"
                               placeholder="0"
@@ -245,10 +391,13 @@ export function DailyPage() {
                                 newSets[setIndex].reps = parseInt(e.target.value) || 0;
                                 updateExercise(index, { ...exercise, sets: newSets });
                               }}
-                              className="w-12 text-center h-8 bg-secondary/30 border-0 p-1 rounded font-medium"
+                              aria-label={`Reps for set ${setIndex + 1}`}
+                              className="w-12 text-center h-8 glass-input border-0 p-1 rounded-lg font-medium"
                             />
-                            <span className="text-muted-foreground/40">×</span>
+                            <span className="text-muted-foreground/40" aria-hidden="true">×</span>
+                            <label htmlFor={`weight-${index}-${setIndex}`} className="sr-only">Weight for set {setIndex + 1} in kg</label>
                             <Input
+                              id={`weight-${index}-${setIndex}`}
                               type="number"
                               inputMode="decimal"
                               placeholder="0"
@@ -258,24 +407,38 @@ export function DailyPage() {
                                 newSets[setIndex].weight = parseInt(e.target.value) || 0;
                                 updateExercise(index, { ...exercise, sets: newSets });
                               }}
-                              className="w-14 text-center h-8 bg-secondary/30 border-0 p-1 rounded font-medium"
+                              aria-label={`Weight for set ${setIndex + 1} in kilograms`}
+                              className="w-14 text-center h-8 glass-input border-0 p-1 rounded-lg font-medium"
                             />
-                            <span className="text-xs text-muted-foreground/50">kg</span>
+                            <span className="text-xs text-muted-foreground/50" aria-hidden="true">kg</span>
                             <button
                               onClick={() => removeSet(index, setIndex)}
-                              className="ml-auto p-1 opacity-0 group-hover:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all"
+                              aria-label={`Remove set ${setIndex + 1}`}
+                              className="ml-auto p-1 opacity-0 group-hover:opacity-100 focus:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all rounded"
                             >
-                              <Trash2 className="h-3 w-3" />
+                              <Trash2 className="h-3 w-3" aria-hidden="true" />
                             </button>
                           </div>
                         ))}
-                        <button onClick={() => addSet(index)} className="text-xs text-primary/60 hover:text-primary py-1 font-medium">+ Set</button>
+                        <button 
+                          onClick={() => addSet(index)} 
+                          aria-label={`Add another set to ${exercise.name || 'exercise'}`}
+                          className="text-xs text-primary/60 hover:text-primary py-1 font-medium"
+                        >
+                          + Set
+                        </button>
                       </div>
                     </div>
                   ))}
 
-                  <Button variant="secondary" size="sm" className="w-full" onClick={addExercise}>
-                    <Plus className="h-4 w-4 mr-1" /> Exercise
+                  <Button 
+                    variant="glass" 
+                    size="sm" 
+                    className="w-full rounded-xl" 
+                    onClick={addExercise}
+                    aria-label="Add new exercise"
+                  >
+                    <Plus className="h-4 w-4 mr-1" aria-hidden="true" /> Exercise
                   </Button>
                 </div>
               </motion.div>
