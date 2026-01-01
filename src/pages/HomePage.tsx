@@ -38,7 +38,7 @@ export function HomePage() {
 
   const springTransition = prefersReducedMotion
     ? { duration: 0 }
-    : { type: 'spring', stiffness: 400, damping: 30 };
+    : { type: 'spring' as const, stiffness: 400, damping: 30 };
 
   const quote = useMemo(() => {
     const dayIndex = getDayOfYear(today);
