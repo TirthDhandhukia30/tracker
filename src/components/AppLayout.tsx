@@ -1,10 +1,33 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { haptics } from '@/lib/haptics';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { motion } from 'framer-motion';
+
+// SVG nav icons
+const HomeIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M5 12l-2 0l9 -9l9 9l-2 0" />
+    <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
+    <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
+  </svg>
+);
+
+const CalendarIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12" />
+    <path d="M16 3v4" />
+    <path d="M8 3v4" />
+    <path d="M4 11h16" />
+    <path d="M11 15h1" />
+    <path d="M12 15v3" />
+  </svg>
+);
+
+const NavIcon = ({ type, className }: { type: 'home' | 'calendar'; className?: string }) => (
+  type === 'home' ? <HomeIcon className={className} /> : <CalendarIcon className={className} />
+);
 
 export function AppLayout() {
   const navigate = useNavigate();
@@ -12,8 +35,8 @@ export function AppLayout() {
   const prefersReducedMotion = useReducedMotion();
 
   const navItems = [
-    { icon: Home, label: 'Home', path: '/' },
-    { icon: Calendar, label: 'Calendar', path: '/calendar' },
+    { type: 'home' as const, label: 'Home', path: '/' },
+    { type: 'calendar' as const, label: 'Calendar', path: '/calendar' },
   ];
 
   const handleNavigation = (path: string) => {
@@ -56,7 +79,7 @@ export function AppLayout() {
                     }
                   />
                 )}
-                <item.icon className={cn("h-6 w-6 transition-transform", isActive && "scale-110")} aria-hidden="true" />
+                <NavIcon type={item.type} className={cn("transition-transform", isActive && "scale-110")} />
                 <span className="text-[10px] font-medium">{item.label}</span>
               </button>
             );

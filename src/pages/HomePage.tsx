@@ -6,8 +6,8 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { cn } from '@/lib/utils';
 import { haptics } from '@/lib/haptics';
 import { motion } from 'framer-motion';
-import { BookOpen, Briefcase, Dumbbell, CheckCircle2, ArrowRight, Quote } from 'lucide-react';
 import { WeightChart } from '@/components/WeightChart';
+import { ProgressRingSmall } from '@/components/ProgressRing';
 import { Skeleton, SkeletonCard, SkeletonChart, SkeletonCalendar } from '@/components/ui/skeleton';
 
 const QUOTES = [
@@ -28,7 +28,6 @@ export function HomePage() {
   const today = new Date();
   const todayStr = format(today, 'yyyy-MM-dd');
 
-  // Animation variants that respect reduced motion
   const fadeInUp = prefersReducedMotion 
     ? { initial: {}, animate: {} }
     : { 
@@ -61,27 +60,59 @@ export function HomePage() {
     return 'empty';
   };
 
-  const isTodayComplete = todayEntry
-    ? [todayEntry.book_reading, todayEntry.work_done, todayEntry.gym_type !== 'rest'].filter(Boolean).length === 3
-    : false;
+  const todayCompletedCount = todayEntry
+    ? [todayEntry.book_reading, todayEntry.work_done, todayEntry.gym_type !== 'rest'].filter(Boolean).length
+    : 0;
 
-  const HabitIcon = ({ active, icon: Icon, label, onDarkBg }: { active: boolean; icon: React.FC<{ className?: string }>; label: string; onDarkBg?: boolean }) => (
-    <div 
+  const isTodayComplete = todayCompletedCount === 3;
+  const todayProgress = (todayCompletedCount / 3) * 100;
+
+  // SVG icons for habits
+  const BookIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 4v16h-12a2 2 0 0 1 -2 -2v-12a2 2 0 0 1 2 -2h12" />
+      <path d="M19 16h-12a2 2 0 0 0 -2 2" />
+      <path d="M9 8h6" />
+    </svg>
+  );
+
+  const WorkIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" />
+      <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" />
+      <path d="M12 12l0 .01" />
+    </svg>
+  );
+
+  const GymIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 640 640" fill="currentColor">
+      <path d="M96 176C96 149.5 117.5 128 144 128C170.5 128 192 149.5 192 176L192 288L448 288L448 176C448 149.5 469.5 128 496 128C522.5 128 544 149.5 544 176L544 192L560 192C586.5 192 608 213.5 608 240L608 288C625.7 288 640 302.3 640 320C640 337.7 625.7 352 608 352L608 400C608 426.5 586.5 448 560 448L544 448L544 464C544 490.5 522.5 512 496 512C469.5 512 448 490.5 448 464L448 352L192 352L192 464C192 490.5 170.5 512 144 512C117.5 512 96 490.5 96 464L96 448L80 448C53.5 448 32 426.5 32 400L32 352C14.3 352 0 337.7 0 320C0 302.3 14.3 288 32 288L32 240C32 213.5 53.5 192 80 192L96 192L96 176z"/>
+    </svg>
+  );
+
+  const CheckIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12l5 5l10 -10" />
+    </svg>
+  );
+
+  // Habit badge with SVG icons
+  const HabitBadge = ({ active, label, icon }: { active: boolean; label: string; icon: React.ReactNode }) => (
+    <motion.div 
+      initial={false}
+      animate={{ scale: active ? 1.05 : 1 }}
+      transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 500, damping: 15 }}
       className={cn(
-        "h-9 w-9 rounded-xl flex items-center justify-center transition-all duration-300",
-        onDarkBg
-          ? active 
-            ? "bg-white/20 text-white shadow-lg backdrop-blur-sm" 
-            : "bg-white/10 text-white/60 backdrop-blur-sm"
-          : active
-            ? "bg-primary text-primary-foreground shadow-glow"
-            : "bg-secondary/80 text-muted-foreground"
+        "h-8 w-8 rounded-lg flex items-center justify-center transition-all",
+        active
+          ? "bg-primary text-primary-foreground"
+          : "bg-secondary/80 text-muted-foreground"
       )}
       role="img"
       aria-label={`${label}: ${active ? 'completed' : 'not completed'}`}
     >
-      <Icon className="h-4 w-4" aria-hidden="true" />
-    </div>
+      {active ? <CheckIcon /> : icon}
+    </motion.div>
   );
 
   const handleNavigate = (path: string) => {
@@ -96,7 +127,7 @@ export function HomePage() {
         <motion.h1 
           {...fadeInUp}
           transition={springTransition}
-          className="text-3xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text"
+          className="text-3xl font-bold tracking-tight"
         >
           {format(today, 'EEEE')}
         </motion.h1>
@@ -110,65 +141,105 @@ export function HomePage() {
       </header>
 
       {isLoading ? (
-        <main className="px-4 space-y-8 max-w-md mx-auto" aria-busy="true" aria-label="Loading content">
+        <main className="px-4 space-y-6 max-w-md mx-auto" aria-busy="true" aria-label="Loading content">
+          <Skeleton className="h-24 w-full rounded-2xl" />
           <SkeletonCard />
+          <div className="grid grid-cols-2 gap-3">
+            <Skeleton className="h-40 rounded-2xl" />
+            <div className="space-y-3">
+              <Skeleton className="h-[76px] rounded-2xl" />
+              <Skeleton className="h-[76px] rounded-2xl" />
+            </div>
+          </div>
           <SkeletonChart />
           <SkeletonCalendar />
-          <div className="px-4 py-6 text-center space-y-3">
-            <Skeleton className="h-4 w-4 mx-auto rounded-full" />
-            <Skeleton className="h-12 w-48 mx-auto" />
-            <Skeleton className="h-3 w-24 mx-auto" />
-          </div>
         </main>
       ) : (
-        <main className="px-4 space-y-8 max-w-md mx-auto" role="main">
+        <main className="px-4 space-y-6 max-w-md mx-auto" role="main">
+
+          {/* Daily Quote */}
+          <motion.aside
+            {...fadeInUp}
+            transition={springTransition}
+            aria-label="Daily inspiration"
+          >
+            <div className="glass-subtle rounded-2xl p-4 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mx-auto mb-2 text-muted-foreground/40">
+                <path d="M9 5a2 2 0 0 1 2 2v6c0 3.13 -1.65 5.193 -4.757 5.97a1 1 0 1 1 -.486 -1.94c2.227 -.557 3.243 -1.827 3.243 -4.03v-1h-3a2 2 0 0 1 -1.995 -1.85l-.005 -.15v-3a2 2 0 0 1 2 -2z" />
+                <path d="M18 5a2 2 0 0 1 2 2v6c0 3.13 -1.65 5.193 -4.757 5.97a1 1 0 1 1 -.486 -1.94c2.227 -.557 3.243 -1.827 3.243 -4.03v-1h-3a2 2 0 0 1 -1.995 -1.85l-.005 -.15v-3a2 2 0 0 1 2 -2z" />
+              </svg>
+              <blockquote>
+                <p className="text-sm font-medium text-foreground/80 italic leading-relaxed">
+                  {quote.text}
+                </p>
+                <footer className="text-[11px] text-muted-foreground mt-2">— {quote.author}</footer>
+              </blockquote>
+            </div>
+          </motion.aside>
 
           {/* Today Card */}
           <motion.button
             {...fadeInUp}
-            transition={springTransition}
+            transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.05 }}
             whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
             onClick={() => handleNavigate(`/date/${todayStr}`)}
             aria-label={isTodayComplete 
               ? "Today's entry complete. Tap to view or edit." 
               : "Log today's habits and workout. Tap to open."}
             className={cn(
-              "w-full group relative overflow-hidden rounded-3xl p-6 text-left transition-all",
+              "w-full group relative overflow-hidden rounded-3xl p-5 text-left transition-all",
               isTodayComplete
-                ? "bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-glow-lg"
+                ? "bg-primary text-primary-foreground"
                 : "glass-card hover:shadow-glass-lg"
             )}
           >
-            {/* Liquid glass shimmer overlay */}
-            {!isTodayComplete && (
-              <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-white/5 pointer-events-none" aria-hidden="true" />
-            )}
-            
-            <div className="relative z-10 flex flex-col h-full justify-between gap-4">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className={cn("text-lg font-semibold", isTodayComplete ? "text-primary-foreground" : "text-foreground")}>
-                    {isTodayComplete ? "Day Complete" : "Today's Focus"}
-                  </h2>
-                  <p className={cn("text-sm mt-1", isTodayComplete ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                    {isTodayComplete ? "Great work keeping the streak." : "Log your habits and workout."}
-                  </p>
-                </div>
+            <div className="flex items-center gap-4">
+              {/* Progress Ring */}
+              <div className="relative flex-shrink-0">
                 {isTodayComplete ? (
-                  <div className="h-10 w-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                    <CheckCircle2 className="h-5 w-5 text-primary-foreground" aria-hidden="true" />
-                  </div>
+                  <motion.div
+                    initial={prefersReducedMotion ? {} : { scale: 0 }}
+                    animate={prefersReducedMotion ? {} : { scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
+                    className="h-14 w-14 rounded-2xl bg-white/20 flex items-center justify-center text-2xl"
+                  >
+                    ✓
+                  </motion.div>
                 ) : (
-                  <div className="h-10 w-10 rounded-xl bg-primary/10 backdrop-blur-sm flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300" aria-hidden="true">
-                    <ArrowRight className="h-4 w-4" />
+                  <div className="relative">
+                    <ProgressRingSmall progress={todayProgress} size={56} strokeWidth={4} />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-xs font-bold">{todayCompletedCount}/3</span>
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex items-center gap-2 mt-4" role="list" aria-label="Today's habit status">
-                <HabitIcon icon={BookOpen} active={todayEntry?.book_reading || false} label="Reading" onDarkBg={isTodayComplete} />
-                <HabitIcon icon={Briefcase} active={todayEntry?.work_done || false} label="Work" onDarkBg={isTodayComplete} />
-                <HabitIcon icon={Dumbbell} active={(todayEntry?.gym_type || 'rest') !== 'rest'} label="Workout" onDarkBg={isTodayComplete} />
+              {/* Content */}
+              <div className="flex-1 min-w-0">
+                <h2 className={cn("text-lg font-semibold", isTodayComplete ? "text-primary-foreground" : "text-foreground")}>
+                  {isTodayComplete ? "Day Complete" : "Today's Focus"}
+                </h2>
+                <p className={cn("text-sm mt-0.5", isTodayComplete ? "text-primary-foreground/80" : "text-muted-foreground")}>
+                  {isTodayComplete ? "Great work! Keep it going." : "Tap to log your habits."}
+                </p>
+                
+                {/* Habit badges with icons */}
+                <div className="flex items-center gap-1.5 mt-3" role="list" aria-label="Today's habit status">
+                  <HabitBadge active={todayEntry?.book_reading || false} label="Reading" icon={<BookIcon />} />
+                  <HabitBadge active={todayEntry?.work_done || false} label="Work" icon={<WorkIcon />} />
+                  <HabitBadge active={(todayEntry?.gym_type || 'rest') !== 'rest'} label="Gym" icon={<GymIcon />} />
+                </div>
+              </div>
+
+              {/* Arrow */}
+              <div className={cn(
+                "h-8 w-8 rounded-xl flex items-center justify-center transition-all text-sm",
+                isTodayComplete 
+                  ? "bg-white/20" 
+                  : "bg-primary/10 group-hover:bg-primary group-hover:text-primary-foreground"
+              )}>
+                →
               </div>
             </div>
           </motion.button>
@@ -177,7 +248,7 @@ export function HomePage() {
           {weightData.length > 0 && (
             <motion.section
               {...fadeInUp}
-              transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.1 }}
+              transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.15 }}
               aria-label="Weight tracking chart"
             >
               <WeightChart data={weightData} />
@@ -201,7 +272,7 @@ export function HomePage() {
             <div className="glass-card rounded-3xl p-5" role="grid" aria-label="Calendar grid">
               <div className="grid grid-cols-7 gap-y-3 gap-x-1" role="row">
                 {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                  <div key={i} className="text-center text-[10px] font-medium text-muted-foreground/70" role="columnheader" aria-label={['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][i]}>{d}</div>
+                  <div key={i} className="text-center text-[10px] font-medium text-muted-foreground/70" role="columnheader">{d}</div>
                 ))}
 
                 {Array.from({ length: startOfMonth(today).getDay() }).map((_, i) => (
@@ -213,45 +284,28 @@ export function HomePage() {
                   const isToday = isSameDay(day, today);
                   const statusLabel = status === 'perfect' ? 'all habits completed' : status === 'partial' ? 'some habits completed' : 'no habits logged';
                   return (
-                    <button
+                    <motion.button
                       key={i}
                       onClick={() => handleNavigate(`/date/${format(day, 'yyyy-MM-dd')}`)}
                       role="gridcell"
                       aria-label={`${format(day, 'MMMM d')}, ${statusLabel}${isToday ? ', today' : ''}`}
                       aria-current={isToday ? 'date' : undefined}
+                      whileTap={prefersReducedMotion ? {} : { scale: 0.9 }}
                       className={cn(
                         "aspect-square mx-auto w-8 rounded-xl flex items-center justify-center text-[10px] font-medium transition-all relative",
-                        status === 'perfect' && "bg-primary text-primary-foreground font-bold shadow-glow",
+                        status === 'perfect' && "bg-primary text-primary-foreground font-bold",
                         status === 'partial' && "bg-primary/20 text-primary font-medium",
                         status === 'empty' && "text-muted-foreground hover:bg-secondary/50",
                         isToday && "ring-2 ring-primary ring-offset-2 ring-offset-background"
                       )}
                     >
                       {format(day, 'd')}
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
             </div>
           </motion.section>
-
-          {/* Daily Quote */}
-          <motion.aside
-            {...fadeInUp}
-            transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.3 }}
-            className="px-4 py-6"
-            aria-label="Daily inspiration"
-          >
-            <div className="glass-subtle rounded-2xl p-5 text-center">
-              <Quote className="h-4 w-4 mx-auto text-primary/50 mb-3" aria-hidden="true" />
-              <blockquote>
-                <p className="text-sm font-medium text-foreground/80 italic leading-relaxed max-w-xs mx-auto">
-                  "{quote.text}"
-                </p>
-                <footer className="text-xs text-muted-foreground mt-3">— {quote.author}</footer>
-              </blockquote>
-            </div>
-          </motion.aside>
 
         </main>
       )}

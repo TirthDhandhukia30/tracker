@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ResponsiveContainer, AreaChart, Area, YAxis } from 'recharts';
 import { useTheme } from '@/components/theme-provider';
-import { TrendingDown, TrendingUp, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CHART_DATA_POINTS } from '@/lib/constants';
+import { haptics } from '@/lib/haptics';
 
 interface DataPoint {
   date: string;
@@ -15,6 +16,7 @@ interface WeightChartProps {
 }
 
 export function WeightChart({ data }: WeightChartProps) {
+  const navigate = useNavigate();
   const { theme } = useTheme();
 
   const { sortedData, latestWeight, weekChange, hasEnoughData, trend, minWeight, maxWeight } = useMemo(() => {
@@ -54,13 +56,22 @@ export function WeightChart({ data }: WeightChartProps) {
     return isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)';
   }, [theme]);
 
+  const handleClick = () => {
+    haptics.light();
+    navigate('/weight-history');
+  };
+
   if (data.length === 0) return null;
 
   return (
-    <div className="glass-card rounded-2xl p-5">
+    <button
+      onClick={handleClick}
+      className="w-full glass-card rounded-2xl p-5 text-left transition-all hover:shadow-glass-lg active:scale-[0.99] group"
+      aria-label="View weight history"
+    >
       <div className="flex items-start justify-between mb-4">
         <div>
-          <p className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">{latestWeight}</p>
+          <p className="text-4xl font-bold tracking-tight">{latestWeight}</p>
           <p className="text-xs text-muted-foreground mt-1">kg</p>
         </div>
 
@@ -71,9 +82,9 @@ export function WeightChart({ data }: WeightChartProps) {
             trend === 'up' && "bg-orange-500/15 text-orange-600 dark:text-orange-400",
             trend === 'stable' && "glass-subtle text-muted-foreground"
           )}>
-            {trend === 'down' && <TrendingDown className="h-4 w-4" />}
-            {trend === 'up' && <TrendingUp className="h-4 w-4" />}
-            {trend === 'stable' && <Minus className="h-4 w-4" />}
+            <span className="text-sm">
+              {trend === 'down' ? '↓' : trend === 'up' ? '↑' : '–'}
+            </span>
             <span>
               {trend === 'stable' ? 'Holding' : `${Math.abs(weekChange).toFixed(1)} kg`}
             </span>
@@ -83,8 +94,8 @@ export function WeightChart({ data }: WeightChartProps) {
 
       {/* Minimal sparkline - no axes, no labels */}
       {sortedData.length > 1 && (
-        <div className="h-16 -mx-2">
-          <ResponsiveContainer width="100%" height="100%">
+        <div className="h-16 -mx-2" style={{ minWidth: 0 }}>
+          <ResponsiveContainer width="100%" height={64}>
             <AreaChart data={sortedData.slice(-CHART_DATA_POINTS)} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
               <YAxis hide domain={[minWeight - 1, maxWeight + 1]} />
               <Area
@@ -102,6 +113,12 @@ export function WeightChart({ data }: WeightChartProps) {
       {!hasEnoughData && (
         <p className="text-xs text-muted-foreground/50 mt-2">Log a few more days to see your trend</p>
       )}
-    </div>
+
+      {/* Subtle indicator that it's tappable */}
+      <div className="flex items-center justify-center mt-3 text-xs text-muted-foreground/60 group-hover:text-muted-foreground transition-colors">
+        <span>View history</span>
+        <span className="ml-0.5">→</span>
+      </div>
+    </button>
   );
 }

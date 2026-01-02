@@ -1,6 +1,5 @@
 import React, { Component, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCw } from 'lucide-react';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -48,7 +47,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           aria-live="assertive"
         >
           <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
-            <AlertCircle className="h-8 w-8 text-destructive" aria-hidden="true" />
+            <span className="text-3xl" aria-hidden="true">!</span>
           </div>
           
           <h1 className="text-xl font-semibold text-foreground mb-2">
@@ -74,8 +73,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               className="w-full"
               aria-label="Reload the entire page"
             >
-              <RefreshCw className="h-4 w-4 mr-2" aria-hidden="true" />
-              Reload App
+              ↻ Reload App
             </Button>
           </div>
 

@@ -8,7 +8,11 @@ export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
       className={cn(
-        'animate-pulse rounded-xl bg-gradient-to-r from-muted/30 via-muted/50 to-muted/30 backdrop-blur-sm',
+        'relative overflow-hidden rounded-xl bg-muted/30 backdrop-blur-sm',
+        // Shimmer effect using pseudo-element
+        'before:absolute before:inset-0',
+        'before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent',
+        'before:animate-shimmer',
         className
       )}
       aria-hidden="true"
