@@ -21,6 +21,7 @@ export interface DailyEntry {
   gym_type: GymType;
   exercises: Exercise[];
   current_weight?: number;
+  daily_steps?: number;
   note?: string;
   sleep_hours?: number;
   energy_level?: number;

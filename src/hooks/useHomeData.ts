@@ -42,16 +42,29 @@ export function useHomeData() {
         .not('current_weight', 'is', null)
         .order('date', { ascending: true });
 
+      // 4. Fetch Steps History (Last 7 days)
+      const sevenDaysAgo = subDays(effectiveToday, 6); // 6 days ago + today = 7 days
+      const stepsStart = max([sevenDaysAgo, START_DATE]);
+      const stepsPromise = supabase
+        .from('daily_entries')
+        .select('date, daily_steps')
+        .gte('date', format(stepsStart, 'yyyy-MM-dd'))
+        .lte('date', todayStr)
+        .not('daily_steps', 'is', null)
+        .order('date', { ascending: true });
+
       // Execute all in parallel
-      const [todayRes, monthRes, weightRes] = await Promise.all([
+      const [todayRes, monthRes, weightRes, stepsRes] = await Promise.all([
         todayPromise,
         monthPromise,
-        weightPromise
+        weightPromise,
+        stepsPromise
       ]);
 
       if (todayRes.error) throw todayRes.error;
       if (monthRes.error) throw monthRes.error;
       if (weightRes.error) throw weightRes.error;
+      if (stepsRes.error) throw stepsRes.error;
 
       // Process Yesterday (from month data if available, to save a call)
       const yesterday = subDays(effectiveToday, 1);
@@ -71,6 +84,10 @@ export function useHomeData() {
         weightData: (weightRes.data as { date: string; current_weight: number }[])?.map(d => ({
           date: d.date,
           weight: d.current_weight
+        })) || [],
+        stepsData: (stepsRes.data as { date: string; daily_steps: number }[])?.map(d => ({
+          date: d.date,
+          steps: d.daily_steps
         })) || [],
         yesterdayEntry: yesterdayEntry as DailyEntry || null
       };

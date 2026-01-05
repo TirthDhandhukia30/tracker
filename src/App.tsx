@@ -5,6 +5,7 @@ import { HomePage } from "@/pages/HomePage";
 import { DailyPage } from "@/pages/DailyPage";
 import { CalendarPage } from "@/pages/CalendarPage";
 import { WeightHistoryPage } from "@/pages/WeightHistoryPage";
+import { StepsHistoryPage } from "@/pages/StepsHistoryPage";
 import { Toaster } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 
@@ -19,6 +20,7 @@ function App() {
               <Route path="/date/:dateStr" element={<DailyPage />} />
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/weight-history" element={<WeightHistoryPage />} />
+              <Route path="/steps-history" element={<StepsHistoryPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

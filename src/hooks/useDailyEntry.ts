@@ -10,6 +10,7 @@ const createDefaultEntry = (date: string): DailyEntry => ({
   gym_type: 'rest',
   exercises: [],
   current_weight: undefined,
+  daily_steps: undefined,
   note: '',
   sleep_hours: undefined,
   energy_level: undefined,
@@ -102,6 +103,7 @@ export function useDailyEntry(dateStr: string) {
         gym_type: entryToSave.gym_type,
         exercises: entryToSave.exercises,
         current_weight: entryToSave.current_weight || null,
+        daily_steps: entryToSave.daily_steps || null,
         note: entryToSave.note || null,
         gratitude: entryToSave.gratitude || null,
       };

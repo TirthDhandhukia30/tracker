@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton, SkeletonHabitButton, SkeletonExercise } from '@/components/ui/skeleton';
-import { ArrowLeft, Plus, Trash2, Check, BookOpen, Briefcase, History, Sparkles } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Check, BookOpen, Briefcase, History, Sparkles, Footprints } from 'lucide-react';
 import type { GymType, Exercise } from '@/types';
 import { cn } from '@/lib/utils';
 import { haptics } from '@/lib/haptics';
@@ -287,6 +287,33 @@ export function DailyPage() {
                 />
               </motion.div>
             )}
+          </div>
+
+          {/* Steps */}
+          <div className="glass-card rounded-2xl h-14 flex items-center justify-between px-5">
+            <div className="flex items-center gap-3">
+              <Footprints className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              <span className="font-medium">Steps</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <label htmlFor="steps-input" className="sr-only">Daily steps in thousands</label>
+              <Input
+                id="steps-input"
+                type="number"
+                inputMode="numeric"
+                placeholder="0"
+                min={0}
+                max={99}
+                value={entry.daily_steps ? Math.round(entry.daily_steps / 1000) : ''}
+                onChange={(e) => {
+                  const val = e.target.value.slice(0, 2);
+                  const num = parseInt(val) || 0;
+                  updateEntry({ daily_steps: num > 0 ? num * 1000 : undefined });
+                }}
+                className="w-12 text-lg font-bold bg-transparent border-0 focus-visible:ring-0 p-0 text-right placeholder:text-muted-foreground/30"
+              />
+              <span className="text-sm font-medium text-muted-foreground select-none">K</span>
+            </div>
           </div>
         </section>
 

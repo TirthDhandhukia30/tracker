@@ -8,6 +8,7 @@ create table if not exists public.daily_entries (
   gym_type text check (gym_type in ('rest', 'push', 'pull', 'legs')),
   exercises jsonb default '[]'::jsonb,
   current_weight decimal(5,2),
+  daily_steps integer,
   note text,
   gratitude text,
 

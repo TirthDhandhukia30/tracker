@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, getDayOfYear } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, getDayOfYear, subDays } from 'date-fns';
 import { useHomeData } from '@/hooks/useHomeData';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { cn } from '@/lib/utils';
@@ -48,6 +48,7 @@ export function HomePage() {
   const todayEntry = data?.todayEntry || null;
   const monthEntries = data?.monthEntries || [];
   const weightData = data?.weightData || [];
+  const stepsData = data?.stepsData || [];
 
   const monthDays = eachDayOfInterval({ start: startOfMonth(today), end: endOfMonth(today) });
 
@@ -87,6 +88,15 @@ export function HomePage() {
   const GymIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 640 640" fill="currentColor">
       <path d="M96 176C96 149.5 117.5 128 144 128C170.5 128 192 149.5 192 176L192 288L448 288L448 176C448 149.5 469.5 128 496 128C522.5 128 544 149.5 544 176L544 192L560 192C586.5 192 608 213.5 608 240L608 288C625.7 288 640 302.3 640 320C640 337.7 625.7 352 608 352L608 400C608 426.5 586.5 448 560 448L544 448L544 464C544 490.5 522.5 512 496 512C469.5 512 448 490.5 448 464L448 352L192 352L192 464C192 490.5 170.5 512 144 512C117.5 512 96 490.5 96 464L96 448L80 448C53.5 448 32 426.5 32 400L32 352C14.3 352 0 337.7 0 320C0 302.3 14.3 288 32 288L32 240C32 213.5 53.5 192 80 192L96 192L96 176z"/>
+    </svg>
+  );
+
+  const StepsIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 16v-2.38c0-.73.25-1.42.67-1.97l.61-.84c.51-.71.32-1.74-.45-2.15a1.51 1.51 0 0 1-.49-2.27l1.61-1.89a1.5 1.5 0 0 1 2.54.47l.52 1.57c.27.82 1.04 1.36 1.9 1.36h1.18" />
+      <path d="M20 16v-2.38c0-.73-.25-1.42-.67-1.97l-.61-.84c-.51-.71-.32-1.74.45-2.15a1.51 1.51 0 0 0 .49-2.27l-1.61-1.89a1.5 1.5 0 0 0-2.54.47l-.52 1.57c-.27.82-1.04 1.36-1.9 1.36h-1.18" />
+      <path d="M8 20h8" />
+      <path d="M12 16v4" />
     </svg>
   );
 
@@ -248,17 +258,96 @@ export function HomePage() {
           {weightData.length > 0 && (
             <motion.section
               {...fadeInUp}
-              transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.15 }}
+              transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.1 }}
               aria-label="Weight tracking chart"
             >
               <WeightChart data={weightData} />
             </motion.section>
           )}
 
+          {/* Steps Tracker */}
+          <motion.section
+            {...fadeInUp}
+            transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.15 }}
+            aria-label="Steps tracking"
+          >
+            <button
+              onClick={() => handleNavigate('/steps-history')}
+              className="w-full glass-card rounded-3xl p-5 text-left transition-all hover:shadow-glass-lg active:scale-[0.99]"
+              aria-label="View steps history"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <StepsIcon />
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground">Steps</h3>
+                </div>
+                <span className="text-xs font-medium text-muted-foreground">Last 7 days</span>
+              </div>
+              
+              {/* Steps bars */}
+              <div className="flex items-end justify-between gap-2 h-24">
+                {(() => {
+                  // Create last 7 days array
+                  const last7Days = Array.from({ length: 7 }, (_, i) => {
+                      const date = subDays(today, 6 - i);
+                      return format(date, 'yyyy-MM-dd');
+                    });
+                    
+                    const maxSteps = Math.max(...stepsData.map(d => d.steps), 10000);
+                    
+                    return last7Days.map((dateStr, i) => {
+                      const dayData = stepsData.find(d => d.date === dateStr);
+                      const steps = dayData?.steps || 0;
+                      const heightPercent = maxSteps > 0 ? (steps / maxSteps) * 100 : 0;
+                      const isToday = dateStr === todayStr;
+                      const dayLabel = format(parseISO(dateStr), 'EEE').charAt(0);
+                      
+                      return (
+                        <div key={dateStr} className="flex-1 flex flex-col items-center gap-1">
+                          <motion.div
+                            initial={{ height: 0 }}
+                            animate={{ height: `${Math.max(heightPercent, 4)}%` }}
+                            transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 25, delay: i * 0.05 }}
+                            className={cn(
+                              "w-full rounded-t-lg transition-colors",
+                              steps > 0 
+                                ? isToday 
+                                  ? "bg-primary" 
+                                  : "bg-primary/60"
+                                : "bg-secondary/50"
+                            )}
+                            title={`${format(parseISO(dateStr), 'MMM d')}: ${steps.toLocaleString()} steps`}
+                          />
+                          <span className={cn(
+                            "text-[10px] font-medium",
+                            isToday ? "text-primary" : "text-muted-foreground"
+                          )}>
+                            {dayLabel}
+                          </span>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+                
+                {/* Today's steps summary */}
+                {todayEntry?.daily_steps && (
+                  <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Today</span>
+                    <span className="text-lg font-bold text-foreground">
+                      {todayEntry.daily_steps.toLocaleString()} <span className="text-sm font-normal text-muted-foreground">steps</span>
+                    </span>
+                  </div>
+                )}
+              </button>
+            </motion.section>
+
           {/* Monthly Consistency */}
           <motion.section
             {...fadeInUp}
-            transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.2 }}
+            transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.25 }}
             className="pb-4"
             aria-label="Monthly consistency calendar"
           >
