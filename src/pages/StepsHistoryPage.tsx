@@ -13,16 +13,16 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function StepsHistoryPage() {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
-  
+
   const today = useMemo(() => new Date(), []);
   const todayStr = format(today, 'yyyy-MM-dd');
 
   const fadeInUp = prefersReducedMotion
     ? { initial: {}, animate: {} }
     : {
-        initial: { opacity: 0, y: 10 },
-        animate: { opacity: 1, y: 0 },
-      };
+      initial: { opacity: 0, y: 10 },
+      animate: { opacity: 1, y: 0 },
+    };
 
   const springTransition = prefersReducedMotion
     ? { duration: 0 }
@@ -47,7 +47,7 @@ export function StepsHistoryPage() {
   // Generate all days from START_DATE to today and merge with steps data
   const stepsHistory = useMemo(() => {
     const allDays = eachDayOfInterval({ start: START_DATE, end: today });
-    
+
     const stepsMap = new Map<string, number | null>();
     stepsEntries?.forEach((entry) => {
       stepsMap.set(entry.date, entry.daily_steps);
@@ -70,11 +70,11 @@ export function StepsHistoryPage() {
     if (entriesWithSteps.length === 0) {
       return { average: 0, total: 0, best: 0, daysLogged: 0 };
     }
-    
+
     const total = entriesWithSteps.reduce((sum, e) => sum + (e.steps || 0), 0);
     const average = Math.round(total / entriesWithSteps.length);
     const best = Math.max(...entriesWithSteps.map(e => e.steps || 0));
-    
+
     return { average, total, best, daysLogged: entriesWithSteps.length };
   }, [stepsHistory]);
 
@@ -134,25 +134,115 @@ export function StepsHistoryPage() {
       </header>
 
       <main className="px-4 max-w-md mx-auto space-y-4">
-        {/* Stats Cards */}
+        {/* Weekly Progress Ring */}
         {!isLoading && stats.daysLogged > 0 && (
           <motion.div
             {...fadeInUp}
             transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.05 }}
-            className="grid grid-cols-3 gap-3"
+            className="glass-card rounded-3xl p-6"
           >
-            <div className="glass-card rounded-2xl p-4 text-center">
-              <p className="text-2xl font-bold">{formatSteps(stats.average)}</p>
-              <p className="text-xs text-muted-foreground mt-1">Avg/day</p>
-            </div>
-            <div className="glass-card rounded-2xl p-4 text-center">
-              <p className="text-2xl font-bold">{formatSteps(stats.best)}</p>
-              <p className="text-xs text-muted-foreground mt-1">Best day</p>
-            </div>
-            <div className="glass-card rounded-2xl p-4 text-center">
-              <p className="text-2xl font-bold">{stats.daysLogged}</p>
-              <p className="text-xs text-muted-foreground mt-1">Days logged</p>
-            </div>
+            {(() => {
+              // Calculate current week's steps
+              const getWeekStart = () => {
+                const now = new Date();
+                const dayOfWeek = now.getDay();
+                const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                const monday = new Date(now);
+                monday.setDate(now.getDate() + mondayOffset);
+                return monday;
+              };
+
+              const weekStart = getWeekStart();
+              const weeklyGoal = 70000;
+
+              // Sum steps from this week
+              const thisWeekSteps = stepsHistory
+                .filter(e => {
+                  const entryDate = parseISO(e.date);
+                  return entryDate >= weekStart && entryDate <= today;
+                })
+                .reduce((sum, e) => sum + (e.steps || 0), 0);
+
+              const weeklyPercent = Math.min((thisWeekSteps / weeklyGoal) * 100, 100);
+              const isGoalMet = thisWeekSteps >= weeklyGoal;
+
+              const ringColor = isGoalMet ? 'rgb(34, 197, 94)' : 'rgb(6, 182, 212)';
+              const ringBgColor = isGoalMet ? 'rgba(34, 197, 94, 0.2)' : 'rgba(6, 182, 212, 0.2)';
+
+              const size = 120;
+              const strokeWidth = 12;
+              const radius = (size - strokeWidth) / 2;
+              const circumference = 2 * Math.PI * radius;
+              const offset = circumference - (weeklyPercent / 100) * circumference;
+
+              return (
+                <>
+                  <div className="flex items-center gap-6">
+                    {/* Ring */}
+                    <div className="relative" style={{ width: size, height: size }}>
+                      <svg
+                        className="-rotate-90"
+                        width={size}
+                        height={size}
+                        viewBox={`0 0 ${size} ${size}`}
+                      >
+                        <circle
+                          cx={size / 2}
+                          cy={size / 2}
+                          r={radius}
+                          fill="none"
+                          stroke={ringBgColor}
+                          strokeWidth={strokeWidth}
+                        />
+                        <motion.circle
+                          cx={size / 2}
+                          cy={size / 2}
+                          r={radius}
+                          fill="none"
+                          stroke={ringColor}
+                          strokeWidth={strokeWidth}
+                          strokeLinecap="round"
+                          strokeDasharray={circumference}
+                          initial={{ strokeDashoffset: circumference }}
+                          animate={{ strokeDashoffset: offset }}
+                          transition={prefersReducedMotion ? { duration: 0 } : {
+                            type: 'spring',
+                            stiffness: 50,
+                            damping: 20
+                          }}
+                        />
+                      </svg>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-xl font-bold tabular-nums">
+                          {Math.round(weeklyPercent)}%
+                        </span>
+                        <span className="text-[9px] text-muted-foreground uppercase">Weekly</span>
+                      </div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex-1 space-y-3">
+                      <div>
+                        <p className="text-2xl font-bold tabular-nums">
+                          {(thisWeekSteps / 1000).toFixed(1)}K
+                        </p>
+                        <p className="text-xs text-muted-foreground">of 70K goal</p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/30">
+                        <div>
+                          <p className="text-sm font-bold tabular-nums">{formatSteps(stats.average)}</p>
+                          <p className="text-[10px] text-muted-foreground">Daily avg</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold tabular-nums">{formatSteps(stats.best)}</p>
+                          <p className="text-[10px] text-muted-foreground">Best day</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
           </motion.div>
         )}
 

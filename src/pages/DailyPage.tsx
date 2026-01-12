@@ -121,20 +121,76 @@ export function DailyPage() {
     });
   };
 
-  const StatusDot = () => {
-    const statusLabel = status === 'saving' ? 'Saving changes' : status === 'synced' ? 'All changes saved' : status === 'error' ? 'Error saving' : 'Loading';
+  // Calculate day's completion
+  const habitsCompleted = [
+    entry.book_reading,
+    entry.work_done,
+    entry.gym_type && entry.gym_type !== 'rest'
+  ].filter(Boolean).length;
+  const dayProgress = (habitsCompleted / 3) * 100;
+
+  const DayProgressRing = () => {
+    const size = 32;
+    const strokeWidth = 3;
+    const radius = (size - strokeWidth) / 2;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference - (dayProgress / 100) * circumference;
+
+    const ringColor = habitsCompleted === 3
+      ? 'rgb(34, 197, 94)'
+      : habitsCompleted > 0
+        ? 'hsl(var(--primary))'
+        : 'transparent';
+
     return (
-      <div 
-        className={cn(
-          "h-2 w-2 rounded-full transition-colors",
-          status === 'saving' && "bg-yellow-500 animate-pulse",
-          status === 'synced' && "bg-green-500",
-          status === 'error' && "bg-destructive"
-        )}
-        role="status"
-        aria-label={statusLabel}
-        title={statusLabel}
-      />
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg
+          className="-rotate-90"
+          width={size}
+          height={size}
+          viewBox={`0 0 ${size} ${size}`}
+        >
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={strokeWidth}
+            className="text-muted/20"
+          />
+          <motion.circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={ringColor}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            initial={{ strokeDashoffset: circumference }}
+            animate={{ strokeDashoffset: offset }}
+            transition={prefersReducedMotion ? { duration: 0 } : {
+              type: 'spring',
+              stiffness: 100,
+              damping: 20
+            }}
+          />
+        </svg>
+        {/* Sync status dot in center */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div
+            className={cn(
+              "h-2 w-2 rounded-full transition-colors",
+              status === 'saving' && "bg-yellow-500 animate-pulse",
+              status === 'synced' && "bg-green-500",
+              status === 'error' && "bg-destructive"
+            )}
+            role="status"
+            aria-label={status === 'saving' ? 'Saving' : status === 'synced' ? 'Saved' : 'Error'}
+          />
+        </div>
+      </div>
     );
   };
 
@@ -175,17 +231,17 @@ export function DailyPage() {
       {/* Header */}
       <header className="sticky top-0 z-50 glass-nav">
         <div className="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
-          <Button 
-            variant="glass" 
-            size="icon" 
-            onClick={() => navigate('/')} 
+          <Button
+            variant="glass"
+            size="icon"
+            onClick={() => navigate('/')}
             className="-ml-2 rounded-xl"
             aria-label="Go back to home"
           >
             <ArrowLeft className="h-5 w-5" aria-hidden="true" />
           </Button>
           <h1 className="text-sm font-semibold">{format(parseISO(dateStr), 'EEEE, MMM d')}</h1>
-          <div className="w-9 flex justify-end"><StatusDot /></div>
+          <DayProgressRing />
         </div>
       </header>
 
@@ -232,7 +288,7 @@ export function DailyPage() {
               </div>
               {entry.book_reading && <Check className="h-5 w-5" aria-hidden="true" />}
             </motion.button>
-            
+
             {entry.book_reading && (
               <motion.div
                 initial={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
@@ -271,7 +327,7 @@ export function DailyPage() {
               </div>
               {entry.work_done && <Check className="h-5 w-5" aria-hidden="true" />}
             </motion.button>
-            
+
             {entry.work_done && (
               <motion.div
                 initial={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
@@ -300,17 +356,18 @@ export function DailyPage() {
               <Input
                 id="steps-input"
                 type="number"
-                inputMode="numeric"
+                inputMode="decimal"
                 placeholder="0"
                 min={0}
                 max={99}
-                value={entry.daily_steps ? Math.round(entry.daily_steps / 1000) : ''}
+                step="0.1"
+                value={entry.daily_steps ? (entry.daily_steps / 1000).toFixed(1).replace(/\.0$/, '') : ''}
                 onChange={(e) => {
-                  const val = e.target.value.slice(0, 2);
-                  const num = parseInt(val) || 0;
-                  updateEntry({ daily_steps: num > 0 ? num * 1000 : undefined });
+                  const val = e.target.value;
+                  const num = parseFloat(val) || 0;
+                  updateEntry({ daily_steps: num > 0 ? Math.round(num * 1000) : undefined });
                 }}
-                className="w-12 text-lg font-bold bg-transparent border-0 focus-visible:ring-0 p-0 text-right placeholder:text-muted-foreground/30"
+                className="w-14 text-lg font-bold bg-transparent border-0 focus-visible:ring-0 p-0 text-right placeholder:text-muted-foreground/30"
               />
               <span className="text-sm font-medium text-muted-foreground select-none">K</span>
             </div>
@@ -447,8 +504,8 @@ export function DailyPage() {
                             </button>
                           </div>
                         ))}
-                        <button 
-                          onClick={() => addSet(index)} 
+                        <button
+                          onClick={() => addSet(index)}
                           aria-label={`Add another set to ${exercise.name || 'exercise'}`}
                           className="text-xs text-primary/60 hover:text-primary py-1 font-medium"
                         >
@@ -458,10 +515,10 @@ export function DailyPage() {
                     </div>
                   ))}
 
-                  <Button 
-                    variant="glass" 
-                    size="sm" 
-                    className="w-full rounded-xl" 
+                  <Button
+                    variant="glass"
+                    size="sm"
+                    className="w-full rounded-xl"
                     onClick={addExercise}
                     aria-label="Add new exercise"
                   >
