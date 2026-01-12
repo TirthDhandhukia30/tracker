@@ -26,6 +26,7 @@ export interface DailyEntry {
   sleep_hours?: number;
   energy_level?: number;
   gratitude?: string;
+  is_highlighted?: boolean;
   created_at?: string;
   updated_at?: string;
 }

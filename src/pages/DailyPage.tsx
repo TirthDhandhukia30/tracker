@@ -393,6 +393,60 @@ export function DailyPage() {
           />
         </section>
 
+        {/* Remember This Day */}
+        <section aria-label="Highlight this day">
+          <motion.button
+            whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
+            onClick={() => {
+              haptics.light();
+              updateEntry({ is_highlighted: !entry.is_highlighted });
+            }}
+            className={cn(
+              "w-full flex items-center justify-between p-4 rounded-2xl transition-all",
+              entry.is_highlighted
+                ? "bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30"
+                : "glass-card hover:shadow-glass-lg"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                entry.is_highlighted
+                  ? "bg-amber-500 text-white"
+                  : "bg-secondary/50"
+              )}>
+                <svg
+                  className={cn("w-5 h-5", entry.is_highlighted ? "" : "text-muted-foreground")}
+                  viewBox="0 0 24 24"
+                  fill={entry.is_highlighted ? "currentColor" : "none"}
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <p className={cn(
+                  "text-sm font-medium",
+                  entry.is_highlighted ? "text-amber-600 dark:text-amber-400" : "text-foreground"
+                )}>
+                  {entry.is_highlighted ? "Remembered" : "Remember This Day"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {entry.is_highlighted ? "This day is highlighted" : "Mark as special"}
+                </p>
+              </div>
+            </div>
+            {entry.is_highlighted && (
+              <svg className="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12l5 5l10 -10" />
+              </svg>
+            )}
+          </motion.button>
+        </section>
+
         {/* Workout */}
         <section className="space-y-5" aria-label="Workout tracking">
           <div className="glass-card p-1.5 rounded-2xl flex gap-1" role="radiogroup" aria-label="Workout type">

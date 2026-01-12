@@ -194,6 +194,15 @@ export function CalendarPage() {
                     {entry?.book_reading && entry?.work_done && !isDisabled && (
                       <div className="absolute inset-0 bg-white/20" aria-hidden="true" />
                     )}
+
+                    {/* Highlighted day star */}
+                    {entry?.is_highlighted && !isDisabled && (
+                      <div className="absolute top-0.5 right-0.5" aria-label="Highlighted day">
+                        <svg className="w-2.5 h-2.5 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                        </svg>
+                      </div>
+                    )}
                   </motion.button>
                 );
               })}

@@ -15,6 +15,7 @@ const createDefaultEntry = (date: string): DailyEntry => ({
   sleep_hours: undefined,
   energy_level: undefined,
   gratitude: '',
+  is_highlighted: false,
 });
 
 export function useDailyEntry(dateStr: string) {
@@ -106,6 +107,7 @@ export function useDailyEntry(dateStr: string) {
         daily_steps: entryToSave.daily_steps || null,
         note: entryToSave.note || null,
         gratitude: entryToSave.gratitude || null,
+        is_highlighted: entryToSave.is_highlighted || false,
       };
 
       console.log('[useDailyEntry] Payload:', payload);

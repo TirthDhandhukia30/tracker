@@ -491,6 +491,41 @@ export function HomePage() {
                       );
                     })}
                   </div>
+
+                  {/* Highlighted Days */}
+                  {(() => {
+                    const highlightedDays = monthEntries.filter(e => e.is_highlighted);
+                    if (highlightedDays.length === 0) return null;
+
+                    return (
+                      <div className="mt-6 pt-4 border-t border-border/30">
+                        <div className="flex items-center gap-2 mb-3">
+                          <svg className="w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="currentColor">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                          </svg>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {highlightedDays.length} special {highlightedDays.length === 1 ? 'day' : 'days'}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {highlightedDays.map(day => (
+                            <button
+                              key={day.date}
+                              onClick={() => handleNavigate(`/date/${day.date}`)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
+                            >
+                              <svg className="w-3 h-3 text-amber-500" viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                              </svg>
+                              <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
+                                {format(new Date(day.date), 'MMM d')}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })()}

@@ -11,6 +11,7 @@ create table if not exists public.daily_entries (
   daily_steps integer,
   note text,
   gratitude text,
+  is_highlighted boolean default false,
 
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(user_id, date)
