@@ -1,13 +1,12 @@
--- Migration: Rename book_reading to running + Add missing columns
--- This migration preserves all existing data
--- Run this in your Supabase SQL Editor
+-- Migration: Add user_id column and fix schema
+-- Run date: 2026-01-13
+-- This migration adds the missing user_id column for RLS
 
 -- ============================================
--- STEP 1: Rename the book_reading column to running
+-- STEP 1: Add user_id column if missing
 -- ============================================
--- This preserves all existing boolean values
 ALTER TABLE public.daily_entries 
-RENAME COLUMN book_reading TO running;
+ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) DEFAULT auth.uid();
 
 -- ============================================
 -- STEP 2: Add running_note column (for tracking distance/time)
@@ -18,7 +17,6 @@ ADD COLUMN IF NOT EXISTS running_note TEXT;
 -- ============================================
 -- STEP 3: Add missing columns that exist in TypeScript types
 -- ============================================
--- These columns were in the TypeScript types but missing from schema
 ALTER TABLE public.daily_entries 
 ADD COLUMN IF NOT EXISTS sleep_hours DECIMAL(3,1);
 
@@ -29,7 +27,42 @@ ALTER TABLE public.daily_entries
 ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
 
 -- ============================================
--- STEP 4: Create trigger to auto-update updated_at
+-- STEP 4: Create unique constraint on user_id and date
+-- ============================================
+ALTER TABLE public.daily_entries 
+DROP CONSTRAINT IF EXISTS daily_entries_user_id_date_key;
+
+ALTER TABLE public.daily_entries 
+ADD CONSTRAINT daily_entries_user_id_date_key UNIQUE(user_id, date);
+
+-- ============================================
+-- STEP 5: Enable RLS and create policies
+-- ============================================
+ALTER TABLE public.daily_entries ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Individuals can view their own entries" ON public.daily_entries;
+DROP POLICY IF EXISTS "Individuals can insert their own entries" ON public.daily_entries;
+DROP POLICY IF EXISTS "Individuals can update their own entries" ON public.daily_entries;
+DROP POLICY IF EXISTS "Individuals can delete their own entries" ON public.daily_entries;
+
+CREATE POLICY "Individuals can view their own entries"
+ON public.daily_entries FOR SELECT
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Individuals can insert their own entries"
+ON public.daily_entries FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Individuals can update their own entries"
+ON public.daily_entries FOR UPDATE
+USING (auth.uid() = user_id);
+
+CREATE POLICY "Individuals can delete their own entries"
+ON public.daily_entries FOR DELETE
+USING (auth.uid() = user_id);
+
+-- ============================================
+-- STEP 6: Create trigger to auto-update updated_at
 -- ============================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -45,12 +78,3 @@ CREATE TRIGGER update_daily_entries_updated_at
     BEFORE UPDATE ON public.daily_entries
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
-
--- ============================================
--- VERIFICATION: Check all columns exist
--- ============================================
--- Run this to verify:
--- SELECT column_name, data_type 
--- FROM information_schema.columns 
--- WHERE table_name = 'daily_entries'
--- ORDER BY ordinal_position;
