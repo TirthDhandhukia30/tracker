@@ -231,7 +231,7 @@ export const RING_COLORS = {
   exercise: { color: 'rgb(34, 197, 94)', bgColor: 'rgba(34, 197, 94, 0.2)' },  // Green
   stand: { color: 'rgb(59, 130, 246)', bgColor: 'rgba(59, 130, 246, 0.2)' },   // Blue
   // Custom colors for this app
-  reading: { color: 'rgb(239, 68, 68)', bgColor: 'rgba(239, 68, 68, 0.2)' },   // Red
+  running: { color: 'rgb(239, 68, 68)', bgColor: 'rgba(239, 68, 68, 0.2)' },   // Red
   work: { color: 'rgb(34, 197, 94)', bgColor: 'rgba(34, 197, 94, 0.2)' },      // Green
   gym: { color: 'rgb(59, 130, 246)', bgColor: 'rgba(59, 130, 246, 0.2)' },     // Blue
   steps: { color: 'rgb(6, 182, 212)', bgColor: 'rgba(6, 182, 212, 0.2)' },     // Cyan

@@ -56,9 +56,9 @@ export function CalendarPage() {
   const getStatusColor = (date: Date, entry?: DailyEntry) => {
     if (isBefore(date, START_DATE)) return "bg-transparent text-muted-foreground/30";
     if (!entry) return "bg-secondary/30";
-    if (entry.book_reading && entry.work_done && entry.gym_type !== 'rest') return "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]";
-    if ((entry.gym_type !== 'rest') || (entry.book_reading && entry.work_done)) return "bg-green-400";
-    if (entry.book_reading || entry.work_done || entry.gym_type !== 'rest') return "bg-green-500/40";
+    if (entry.running && entry.work_done && entry.gym_type !== 'rest') return "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]";
+    if ((entry.gym_type !== 'rest') || (entry.running && entry.work_done)) return "bg-green-400";
+    if (entry.running || entry.work_done || entry.gym_type !== 'rest') return "bg-green-500/40";
     return "bg-secondary";
   };
 
@@ -149,7 +149,7 @@ export function CalendarPage() {
                 const gymType = entry?.gym_type;
                 const gymLabel = gymType === 'push' ? 'P' : gymType === 'pull' ? 'U' : gymType === 'legs' ? 'L' : null;
                 const statusLabel = entry
-                  ? (entry.book_reading && entry.work_done && entry.gym_type !== 'rest'
+                  ? (entry.running && entry.work_done && entry.gym_type !== 'rest'
                     ? 'all habits completed'
                     : 'some habits completed')
                   : 'no entry';
@@ -191,7 +191,7 @@ export function CalendarPage() {
                       </span>
                     )}
 
-                    {entry?.book_reading && entry?.work_done && !isDisabled && (
+                    {entry?.running && entry?.work_done && !isDisabled && (
                       <div className="absolute inset-0 bg-white/20" aria-hidden="true" />
                     )}
 
@@ -217,7 +217,7 @@ export function CalendarPage() {
               {(() => {
                 const daysInMonth = days.length;
                 const gymCount = entries.filter(e => e.gym_type !== 'rest').length;
-                const readingCount = entries.filter(e => e.book_reading).length;
+                const runningCount = entries.filter(e => e.running).length;
                 const workCount = entries.filter(e => e.work_done).length;
 
                 const rings = [
@@ -229,8 +229,8 @@ export function CalendarPage() {
                     bgColor: 'rgba(59, 130, 246, 0.2)',
                   },
                   {
-                    label: 'Read',
-                    count: readingCount,
+                    label: 'Run',
+                    count: runningCount,
                     total: daysInMonth,
                     color: 'rgb(239, 68, 68)',
                     bgColor: 'rgba(239, 68, 68, 0.2)',
@@ -245,7 +245,7 @@ export function CalendarPage() {
                 ];
 
                 const overallPercent = daysInMonth > 0
-                  ? Math.round(((gymCount + readingCount + workCount) / (daysInMonth * 3)) * 100)
+                  ? Math.round(((gymCount + runningCount + workCount) / (daysInMonth * 3)) * 100)
                   : 0;
 
                 return (

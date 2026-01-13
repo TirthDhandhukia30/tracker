@@ -53,7 +53,7 @@ export function HomePage() {
   const monthDays = eachDayOfInterval({ start: startOfMonth(today), end: endOfMonth(today) });
 
   const todayCompletedCount = todayEntry
-    ? [todayEntry.book_reading, todayEntry.work_done, todayEntry.gym_type !== 'rest'].filter(Boolean).length
+    ? [todayEntry.running, todayEntry.work_done, todayEntry.gym_type !== 'rest'].filter(Boolean).length
     : 0;
 
   const isTodayComplete = todayCompletedCount === 3;
@@ -158,7 +158,7 @@ export function HomePage() {
               {/* Center: Three habit dots */}
               <div className="flex items-center gap-2">
                 {[
-                  { done: todayEntry?.book_reading || false },
+                  { done: todayEntry?.running || false },
                   { done: todayEntry?.work_done || false },
                   { done: (todayEntry?.gym_type || 'rest') !== 'rest' },
                 ].map((habit, i) => (
@@ -373,14 +373,14 @@ export function HomePage() {
           >
             {(() => {
               const daysPassedThisMonth = monthDays.filter(d => d <= today).length;
-              const readingCount = monthEntries.filter(e => e.book_reading).length;
+              const runningCount = monthEntries.filter(e => e.running).length;
               const workCount = monthEntries.filter(e => e.work_done).length;
               const gymCount = monthEntries.filter(e => e.gym_type && e.gym_type !== 'rest').length;
 
               const rings = [
                 {
-                  label: 'Read',
-                  count: readingCount,
+                  label: 'Run',
+                  count: runningCount,
                   total: daysPassedThisMonth,
                   color: 'rgb(239, 68, 68)', // red
                   bgColor: 'rgba(239, 68, 68, 0.2)',
@@ -465,7 +465,7 @@ export function HomePage() {
                       {/* Center text */}
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-2xl font-bold tabular-nums">
-                          {Math.round(((readingCount + workCount + gymCount) / (daysPassedThisMonth * 3)) * 100) || 0}%
+                          {Math.round(((runningCount + workCount + gymCount) / (daysPassedThisMonth * 3)) * 100) || 0}%
                         </span>
                         <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Complete</span>
                       </div>

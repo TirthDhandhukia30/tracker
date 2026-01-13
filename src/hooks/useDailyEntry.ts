@@ -5,7 +5,7 @@ import type { DailyEntry, GymType } from '@/types';
 const createDefaultEntry = (date: string): DailyEntry => ({
   id: '',
   date,
-  book_reading: false,
+  running: false,
   work_done: false,
   gym_type: 'rest',
   exercises: [],
@@ -97,14 +97,16 @@ export function useDailyEntry(dateStr: string) {
     try {
       const payload = {
         date: entryToSave.date,
-        book_reading: entryToSave.book_reading,
-        reading_note: entryToSave.reading_note || null,
+        running: entryToSave.running,
+        running_note: entryToSave.running_note || null,
         work_done: entryToSave.work_done,
         work_note: entryToSave.work_note || null,
         gym_type: entryToSave.gym_type,
         exercises: entryToSave.exercises,
         current_weight: entryToSave.current_weight || null,
         daily_steps: entryToSave.daily_steps || null,
+        sleep_hours: entryToSave.sleep_hours || null,
+        energy_level: entryToSave.energy_level || null,
         note: entryToSave.note || null,
         gratitude: entryToSave.gratitude || null,
         is_highlighted: entryToSave.is_highlighted || false,
@@ -114,7 +116,7 @@ export function useDailyEntry(dateStr: string) {
 
       const { data, error } = await supabase
         .from('daily_entries')
-        .upsert(payload, { onConflict: 'date' })
+        .upsert(payload, { onConflict: 'user_id,date' })
         .select()
         .single();
 
@@ -160,10 +162,10 @@ export function useDailyEntry(dateStr: string) {
       clearTimeout(saveTimeoutRef.current);
     }
 
-    // Debounce the save
+    // Debounce the save - 1.5s to reduce database calls
     saveTimeoutRef.current = setTimeout(() => {
       saveToSupabase(entry);
-    }, 800);
+    }, 1500);
 
     return () => {
       if (saveTimeoutRef.current) {
@@ -178,7 +180,7 @@ export function useDailyEntry(dateStr: string) {
   }, []);
 
   // Toggle habit helper
-  const toggleHabit = useCallback((key: 'book_reading' | 'work_done') => {
+  const toggleHabit = useCallback((key: 'running' | 'work_done') => {
     setEntry(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 

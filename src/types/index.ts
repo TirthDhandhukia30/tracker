@@ -9,13 +9,14 @@ export interface Exercise {
   id?: string; // Optional for UI tracking
   name: string;
   sets: ExerciseSet[];
+  unit?: 'kg' | 'lbs'; // Per-exercise weight unit
 }
 
 export interface DailyEntry {
   id: string;
   date: string; // YYYY-MM-DD
-  book_reading: boolean;
-  reading_note?: string; // What did you read?
+  running: boolean;
+  running_note?: string; // Distance, time, or notes about the run
   work_done: boolean;
   work_note?: string; // What did you work on?
   gym_type: GymType;

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton, SkeletonHabitButton, SkeletonExercise } from '@/components/ui/skeleton';
-import { ArrowLeft, Plus, Trash2, Check, BookOpen, Briefcase, History, Sparkles, Footprints } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Check, Briefcase, History, Sparkles, Footprints } from 'lucide-react';
 import type { GymType, Exercise } from '@/types';
 import { cn } from '@/lib/utils';
 import { haptics } from '@/lib/haptics';
@@ -63,7 +63,7 @@ export function DailyPage() {
     resizeTextarea();
   }, [entry.note, resizeTextarea]);
 
-  const handleToggleHabit = (key: 'book_reading' | 'work_done') => {
+  const handleToggleHabit = (key: 'running' | 'work_done') => {
     haptics.light();
     toggleHabit(key);
   };
@@ -73,7 +73,7 @@ export function DailyPage() {
   };
 
   const addExercise = () => {
-    const newExercise: Exercise = { name: '', sets: [{ reps: 0, weight: 0 }] };
+    const newExercise: Exercise = { name: '', sets: [{ reps: 0, weight: 0 }], unit: 'kg' };
     updateEntry({ exercises: [...(entry.exercises || []), newExercise] });
   };
 
@@ -123,7 +123,7 @@ export function DailyPage() {
 
   // Calculate day's completion
   const habitsCompleted = [
-    entry.book_reading,
+    entry.running,
     entry.work_done,
     entry.gym_type && entry.gym_type !== 'rest'
   ].filter(Boolean).length;
@@ -267,39 +267,41 @@ export function DailyPage() {
 
         {/* Habits */}
         <section className="space-y-4" aria-label="Daily habits">
-          {/* Reading */}
+          {/* Running */}
           <div className="space-y-2">
             <motion.button
               whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
-              onClick={() => handleToggleHabit('book_reading')}
+              onClick={() => handleToggleHabit('running')}
               role="switch"
-              aria-checked={entry.book_reading}
-              aria-label={`Reading: ${entry.book_reading ? 'completed' : 'not completed'}. Tap to toggle.`}
+              aria-checked={entry.running}
+              aria-label={`Running: ${entry.running ? 'completed' : 'not completed'}. Tap to toggle.`}
               className={cn(
                 "w-full h-14 rounded-2xl flex items-center justify-between px-5 transition-all select-none",
-                entry.book_reading
+                entry.running
                   ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-glow"
                   : "glass-card hover:shadow-glass-lg"
               )}
             >
               <div className="flex items-center gap-3">
-                <BookOpen className="h-5 w-5" aria-hidden="true" />
-                <span className="font-medium">Reading</span>
+                <svg className="h-5 w-5" viewBox="0 0 640 640" fill="currentColor" aria-hidden="true">
+                  <path d="M352.5 32C383.4 32 408.5 57.1 408.5 88C408.5 118.9 383.4 144 352.5 144C321.6 144 296.5 118.9 296.5 88C296.5 57.1 321.6 32 352.5 32zM219.6 240C216.3 240 213.4 242 212.2 245L190.2 299.9C183.6 316.3 165 324.3 148.6 317.7C132.2 311.1 124.2 292.5 130.8 276.1L152.7 221.2C163.7 193.9 190.1 176 219.6 176L316.9 176C345.4 176 371.7 191.1 386 215.7L418.8 272L480.4 272C498.1 272 512.4 286.3 512.4 304C512.4 321.7 498.1 336 480.4 336L418.8 336C396 336 375 323.9 363.5 304.2L353.5 287.1L332.8 357.5L408.2 380.1C435.9 388.4 450 419.1 438.3 445.6L381.7 573C374.5 589.2 355.6 596.4 339.5 589.2C323.4 582 316.1 563.1 323.3 547L372.5 436.2L276.6 407.4C243.9 397.6 224.6 363.7 232.9 330.6L255.6 240L219.7 240zM211.6 421C224.9 435.9 242.3 447.3 262.8 453.4L267.5 454.8L260.6 474.1C254.8 490.4 244.6 504.9 231.3 515.9L148.9 583.8C135.3 595 115.1 593.1 103.9 579.5C92.7 565.9 94.6 545.7 108.2 534.5L190.6 466.6C195.1 462.9 198.4 458.1 200.4 452.7L211.6 421z" />
+                </svg>
+                <span className="font-medium">Running</span>
               </div>
-              {entry.book_reading && <Check className="h-5 w-5" aria-hidden="true" />}
+              {entry.running && <Check className="h-5 w-5" aria-hidden="true" />}
             </motion.button>
 
-            {entry.book_reading && (
+            {entry.running && (
               <motion.div
                 initial={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 30 }}
               >
                 <Input
-                  placeholder="What did you read?"
-                  value={entry.reading_note || ''}
-                  onChange={(e) => updateEntry({ reading_note: e.target.value })}
-                  aria-label="What did you read?"
+                  placeholder="Distance, time, or notes (optional)"
+                  value={entry.running_note || ''}
+                  onChange={(e) => updateEntry({ running_note: e.target.value })}
+                  aria-label="Running details"
                   className="glass-input rounded-xl px-4 py-3 text-sm"
                 />
               </motion.div>
@@ -481,8 +483,9 @@ export function DailyPage() {
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={prefersReducedMotion ? {} : { opacity: 0, height: 0 }}
                 transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 400, damping: 30 }}
-                className="space-y-6"
+                className="space-y-5"
               >
+                {/* Header */}
                 <button
                   onClick={handleCopyWorkout}
                   aria-label={`Copy exercises from your last ${entry.gym_type} workout`}
@@ -492,92 +495,178 @@ export function DailyPage() {
                   Repeat last {entry.gym_type}
                 </button>
 
-                <div className="space-y-5" role="list" aria-label="Exercises">
-                  {entry.exercises?.map((exercise, index) => (
-                    <div key={index} className="group glass-card rounded-2xl p-4" role="listitem">
-                      <div className="flex items-center gap-2 mb-3">
-                        <label htmlFor={`exercise-name-${index}`} className="sr-only">Exercise name</label>
-                        <Input
-                          id={`exercise-name-${index}`}
-                          placeholder="Exercise"
-                          value={exercise.name}
-                          onChange={(e) => updateExercise(index, { ...exercise, name: e.target.value })}
-                          className="font-semibold text-base border-0 bg-transparent p-0 focus-visible:ring-0 placeholder:text-muted-foreground/30"
-                        />
-                        <button
-                          onClick={() => removeExercise(index)}
-                          aria-label={`Remove ${exercise.name || 'exercise'}`}
-                          className="p-2 opacity-0 group-hover:opacity-100 focus:opacity-100 text-muted-foreground hover:text-destructive transition-all rounded-lg hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-4 w-4" aria-hidden="true" />
-                        </button>
-                      </div>
+                <div className="space-y-4" role="list" aria-label="Exercises">
+                  {entry.exercises?.map((exercise, index) => {
+                    const unit = exercise.unit || 'kg';
+                    return (
+                      <motion.div
+                        key={index}
+                        initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="group glass-card rounded-3xl overflow-hidden"
+                        role="listitem"
+                      >
+                        {/* Exercise Header */}
+                        <div className="flex items-center gap-3 p-4 pb-2">
+                          <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <svg className="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M14.4 14.4 9.6 9.6" />
+                              <path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z" />
+                              <path d="m21.5 21.5-1.4-1.4" />
+                              <path d="M3.9 3.9 2.5 2.5" />
+                              <path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <Input
+                              id={`exercise-name-${index}`}
+                              placeholder="Exercise name"
+                              value={exercise.name}
+                              onChange={(e) => updateExercise(index, { ...exercise, name: e.target.value })}
+                              className="font-semibold text-base border-0 bg-transparent p-0 h-auto focus-visible:ring-0 placeholder:text-muted-foreground/40"
+                            />
+                          </div>
+                          <button
+                            onClick={() => removeExercise(index)}
+                            aria-label={`Remove ${exercise.name || 'exercise'}`}
+                            className="min-w-[44px] min-h-[44px] flex items-center justify-center opacity-60 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 text-muted-foreground hover:text-destructive active:text-destructive transition-all rounded-xl hover:bg-destructive/10 active:bg-destructive/20"
+                          >
+                            <Trash2 className="h-5 w-5" aria-hidden="true" />
+                          </button>
+                        </div>
 
-                      <div className="pl-3 border-l-2 border-primary/20 space-y-2" role="list" aria-label={`Sets for ${exercise.name || 'exercise'}`}>
-                        {exercise.sets.map((set, setIndex) => (
-                          <div key={setIndex} className="flex items-center gap-3 text-sm" role="listitem">
-                            <span className="w-4 text-xs text-muted-foreground/60 font-mono" aria-hidden="true">{setIndex + 1}</span>
-                            <label htmlFor={`reps-${index}-${setIndex}`} className="sr-only">Reps for set {setIndex + 1}</label>
-                            <Input
-                              id={`reps-${index}-${setIndex}`}
-                              type="number"
-                              inputMode="decimal"
-                              placeholder="0"
-                              value={set.reps || ''}
-                              onChange={(e) => {
-                                const newSets = [...exercise.sets];
-                                newSets[setIndex].reps = parseInt(e.target.value) || 0;
-                                updateExercise(index, { ...exercise, sets: newSets });
-                              }}
-                              aria-label={`Reps for set ${setIndex + 1}`}
-                              className="w-12 text-center h-8 glass-input border-0 p-1 rounded-lg font-medium"
-                            />
-                            <span className="text-muted-foreground/40" aria-hidden="true">×</span>
-                            <label htmlFor={`weight-${index}-${setIndex}`} className="sr-only">Weight for set {setIndex + 1} in kg</label>
-                            <Input
-                              id={`weight-${index}-${setIndex}`}
-                              type="number"
-                              inputMode="decimal"
-                              placeholder="0"
-                              value={set.weight || ''}
-                              onChange={(e) => {
-                                const newSets = [...exercise.sets];
-                                newSets[setIndex].weight = parseInt(e.target.value) || 0;
-                                updateExercise(index, { ...exercise, sets: newSets });
-                              }}
-                              aria-label={`Weight for set ${setIndex + 1} in kilograms`}
-                              className="w-14 text-center h-8 glass-input border-0 p-1 rounded-lg font-medium"
-                            />
-                            <span className="text-xs text-muted-foreground/50" aria-hidden="true">kg</span>
+                        {/* Unit Toggle - Per Exercise */}
+                        <div className="px-4 pb-3 flex justify-end">
+                          <div className="flex items-center gap-1 p-1 bg-secondary/40 rounded-xl">
                             <button
-                              onClick={() => removeSet(index, setIndex)}
-                              aria-label={`Remove set ${setIndex + 1}`}
-                              className="ml-auto p-1 opacity-0 group-hover:opacity-100 focus:opacity-100 text-muted-foreground/30 hover:text-destructive transition-all rounded"
+                              onClick={() => {
+                                haptics.selection();
+                                updateExercise(index, { ...exercise, unit: 'kg' });
+                              }}
+                              className={cn(
+                                "min-w-[44px] min-h-[44px] text-xs font-bold rounded-lg transition-all",
+                                unit === 'kg'
+                                  ? "bg-primary text-primary-foreground shadow-sm"
+                                  : "text-muted-foreground hover:text-foreground active:bg-secondary"
+                              )}
                             >
-                              <Trash2 className="h-3 w-3" aria-hidden="true" />
+                              KG
+                            </button>
+                            <button
+                              onClick={() => {
+                                haptics.selection();
+                                updateExercise(index, { ...exercise, unit: 'lbs' });
+                              }}
+                              className={cn(
+                                "min-w-[44px] min-h-[44px] text-xs font-bold rounded-lg transition-all",
+                                unit === 'lbs'
+                                  ? "bg-primary text-primary-foreground shadow-sm"
+                                  : "text-muted-foreground hover:text-foreground active:bg-secondary"
+                              )}
+                            >
+                              LBS
                             </button>
                           </div>
-                        ))}
-                        <button
-                          onClick={() => addSet(index)}
-                          aria-label={`Add another set to ${exercise.name || 'exercise'}`}
-                          className="text-xs text-primary/60 hover:text-primary py-1 font-medium"
-                        >
-                          + Set
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                        </div>
 
-                  <Button
-                    variant="glass"
-                    size="sm"
-                    className="w-full rounded-xl"
+                        {/* Sets */}
+                        <div className="px-4 pb-4 space-y-2">
+                          {/* Column headers */}
+                          <div className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 px-1 mb-1">
+                            <span className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider">Set</span>
+                            <span className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider text-center">Reps</span>
+                            <span className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider text-center">{unit.toUpperCase()}</span>
+                            <span></span>
+                          </div>
+
+                          {exercise.sets.map((set, setIndex) => (
+                            <motion.div
+                              key={setIndex}
+                              initial={prefersReducedMotion ? {} : { opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: setIndex * 0.03 }}
+                              className="grid grid-cols-[40px_1fr_1fr_44px] gap-2 items-center"
+                            >
+                              {/* Set number badge */}
+                              <div className="h-8 w-8 rounded-xl bg-secondary/60 flex items-center justify-center">
+                                <span className="text-xs font-bold text-muted-foreground">{setIndex + 1}</span>
+                              </div>
+
+                              {/* Reps input */}
+                              <div className="relative">
+                                <Input
+                                  id={`reps-${index}-${setIndex}`}
+                                  type="number"
+                                  inputMode="numeric"
+                                  placeholder="0"
+                                  value={set.reps || ''}
+                                  onChange={(e) => {
+                                    const newSets = [...exercise.sets];
+                                    newSets[setIndex].reps = parseInt(e.target.value) || 0;
+                                    updateExercise(index, { ...exercise, sets: newSets });
+                                  }}
+                                  className="h-11 text-center text-lg font-semibold bg-secondary/40 border-0 rounded-2xl focus-visible:ring-2 focus-visible:ring-primary/30 placeholder:text-muted-foreground/30"
+                                />
+                              </div>
+
+                              {/* Weight input */}
+                              <div className="relative">
+                                <Input
+                                  id={`weight-${index}-${setIndex}`}
+                                  type="number"
+                                  inputMode="decimal"
+                                  placeholder="0"
+                                  value={set.weight || ''}
+                                  onChange={(e) => {
+                                    const newSets = [...exercise.sets];
+                                    newSets[setIndex].weight = parseFloat(e.target.value) || 0;
+                                    updateExercise(index, { ...exercise, sets: newSets });
+                                  }}
+                                  className="h-11 text-center text-lg font-semibold bg-secondary/40 border-0 rounded-2xl focus-visible:ring-2 focus-visible:ring-primary/30 placeholder:text-muted-foreground/30"
+                                />
+                              </div>
+
+                              {/* Delete set */}
+                              <button
+                                onClick={() => removeSet(index, setIndex)}
+                                aria-label={`Remove set ${setIndex + 1}`}
+                                className="min-w-[44px] min-h-[44px] flex items-center justify-center opacity-50 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 text-muted-foreground/60 hover:text-destructive active:text-destructive transition-all rounded-xl hover:bg-destructive/10 active:bg-destructive/20"
+                              >
+                                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M18 6 6 18" />
+                                  <path d="m6 6 12 12" />
+                                </svg>
+                              </button>
+                            </motion.div>
+                          ))}
+
+                          {/* Add set button */}
+                          <button
+                            onClick={() => addSet(index)}
+                            aria-label={`Add another set to ${exercise.name || 'exercise'}`}
+                            className="w-full min-h-[48px] mt-3 flex items-center justify-center gap-2 text-sm font-semibold text-primary/70 hover:text-primary active:text-primary rounded-2xl border-2 border-dashed border-primary/20 hover:border-primary/40 active:border-primary/50 hover:bg-primary/5 active:bg-primary/10 transition-all"
+                          >
+                            <Plus className="h-5 w-5" />
+                            Add Set
+                          </button>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+
+                  {/* Add Exercise Button */}
+                  <motion.button
+                    whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
                     onClick={addExercise}
                     aria-label="Add new exercise"
+                    className="w-full h-14 flex items-center justify-center gap-2 glass-card rounded-3xl text-sm font-semibold text-foreground/80 hover:text-foreground hover:shadow-glass-lg transition-all"
                   >
-                    <Plus className="h-4 w-4 mr-1" aria-hidden="true" /> Exercise
-                  </Button>
+                    <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Plus className="h-4 w-4 text-primary" aria-hidden="true" />
+                    </div>
+                    Add Exercise
+                  </motion.button>
                 </div>
               </motion.div>
             )}

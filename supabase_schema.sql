@@ -1,19 +1,34 @@
--- Create the table if it doesn't exist
+-- Daily Entries Table Schema
+-- Updated: 2026-01-13 - Renamed book_reading to running
+
 create table if not exists public.daily_entries (
   id uuid default gen_random_uuid() primary key,
   user_id uuid references auth.users(id) not null default auth.uid(),
   date date not null,
-  book_reading boolean default false,
+  
+  -- Habits
+  running boolean default false,
+  running_note text, -- Distance, time, or notes about the run
   work_done boolean default false,
+  work_note text, -- What did you work on?
+  
+  -- Workout
   gym_type text check (gym_type in ('rest', 'push', 'pull', 'legs')),
-  exercises jsonb default '[]'::jsonb,
+  exercises jsonb default '[]'::jsonb, -- Array of {name, sets: [{reps, weight}], unit: 'kg'|'lbs'}
+  
+  -- Health metrics
   current_weight decimal(5,2),
   daily_steps integer,
+  sleep_hours decimal(3,1), -- Hours of sleep (e.g., 7.5)
+  energy_level integer check (energy_level >= 1 and energy_level <= 5), -- 1-5 scale
+  
+  -- Reflection
   note text,
   gratitude text,
   is_highlighted boolean default false,
 
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
   unique(user_id, date)
 );
 

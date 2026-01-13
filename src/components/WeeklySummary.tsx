@@ -22,7 +22,7 @@ export function WeeklySummary({ entries, className }: WeeklySummaryProps) {
     const weekStart = startOfWeek(today, { weekStartsOn: 0 });
     const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
     const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
-    
+
     // Only count days up to today
     const daysUpToToday = weekDays.filter(day => !isAfter(day, today));
     const totalPossibleDays = daysUpToToday.length;
@@ -32,7 +32,7 @@ export function WeeklySummary({ entries, className }: WeeklySummaryProps) {
     entries.forEach(entry => entriesByDate.set(entry.date, entry));
 
     let perfectDays = 0;
-    let readingDays = 0;
+    let runningDays = 0;
     let workDays = 0;
     let gymDays = 0;
     let currentStreak = 0;
@@ -40,14 +40,14 @@ export function WeeklySummary({ entries, className }: WeeklySummaryProps) {
 
     // Process each day (in reverse for streak calculation)
     const sortedDays = [...daysUpToToday].sort((a, b) => b.getTime() - a.getTime());
-    
+
     daysUpToToday.forEach(day => {
       const entry = entriesByDate.get(format(day, 'yyyy-MM-dd'));
       if (entry) {
-        if (entry.book_reading) readingDays++;
+        if (entry.running) runningDays++;
         if (entry.work_done) workDays++;
         if (entry.gym_type !== 'rest') gymDays++;
-        const isComplete = entry.book_reading && entry.work_done && entry.gym_type !== 'rest';
+        const isComplete = entry.running && entry.work_done && entry.gym_type !== 'rest';
         if (isComplete) perfectDays++;
       }
     });
@@ -55,7 +55,7 @@ export function WeeklySummary({ entries, className }: WeeklySummaryProps) {
     // Calculate current streak (consecutive perfect days from today backwards)
     for (const day of sortedDays) {
       const entry = entriesByDate.get(format(day, 'yyyy-MM-dd'));
-      const isComplete = entry && entry.book_reading && entry.work_done && entry.gym_type !== 'rest';
+      const isComplete = entry && entry.running && entry.work_done && entry.gym_type !== 'rest';
       if (isComplete) {
         tempStreak++;
       } else {
@@ -66,15 +66,15 @@ export function WeeklySummary({ entries, className }: WeeklySummaryProps) {
 
     // Find best performing habit
     const habitCounts = [
-      { name: 'Reading', count: readingDays },
+      { name: 'Running', count: runningDays },
       { name: 'Work', count: workDays },
       { name: 'Gym', count: gymDays },
     ];
     const bestHabit = habitCounts.reduce((a, b) => (a.count >= b.count ? a : b));
 
     // Weekly completion percentage
-    const completionRate = totalPossibleDays > 0 
-      ? Math.round((perfectDays / totalPossibleDays) * 100) 
+    const completionRate = totalPossibleDays > 0
+      ? Math.round((perfectDays / totalPossibleDays) * 100)
       : 0;
 
     return {
@@ -83,7 +83,7 @@ export function WeeklySummary({ entries, className }: WeeklySummaryProps) {
       currentStreak,
       completionRate,
       bestHabit,
-      readingDays,
+      runningDays,
       workDays,
       gymDays,
     };
