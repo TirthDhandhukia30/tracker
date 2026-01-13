@@ -116,7 +116,7 @@ export function useDailyEntry(dateStr: string) {
 
       const { data, error } = await supabase
         .from('daily_entries')
-        .upsert(payload, { onConflict: 'user_id,date' })
+        .upsert(payload, { onConflict: 'date' })
         .select()
         .single();
 

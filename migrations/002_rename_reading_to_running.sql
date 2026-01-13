@@ -1,83 +1,52 @@
--- Migration: Add user_id column and fix schema
+-- Migration: Fix schema for non-auth setup
 -- Run date: 2026-01-13
--- This migration adds the missing user_id column for RLS
+-- This app doesn't use Supabase Auth, so we need simple date-based constraint
 
 -- ============================================
--- STEP 0: Drop old date-only constraint (causes 409 conflicts)
+-- STEP 1: Disable RLS (no auth)
+-- ============================================
+ALTER TABLE public.daily_entries DISABLE ROW LEVEL SECURITY;
+
+-- ============================================
+-- STEP 2: Drop user_id-based constraint
+-- ============================================
+ALTER TABLE public.daily_entries 
+DROP CONSTRAINT IF EXISTS daily_entries_user_id_date_key;
+
+-- ============================================
+-- STEP 3: Drop old date constraint if exists
 -- ============================================
 ALTER TABLE public.daily_entries 
 DROP CONSTRAINT IF EXISTS daily_entries_date_key;
 
 -- ============================================
--- STEP 0.5: Cleanup duplicate entries (keep only most recent per user_id + date)
+-- STEP 4: Cleanup duplicate entries (keep only most recent per date)
 -- ============================================
 DELETE FROM public.daily_entries a
 USING public.daily_entries b
 WHERE a.id < b.id
-  AND a.date = b.date
-  AND a.user_id = b.user_id;
+  AND a.date = b.date;
 
 -- ============================================
--- STEP 1: Add user_id column if missing
+-- STEP 5: Add simple date constraint
 -- ============================================
 ALTER TABLE public.daily_entries 
-ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES auth.users(id) DEFAULT auth.uid();
+ADD CONSTRAINT daily_entries_date_key UNIQUE(date);
 
 -- ============================================
--- STEP 2: Add running_note column (for tracking distance/time)
+-- STEP 6: Ensure all required columns exist
 -- ============================================
 ALTER TABLE public.daily_entries 
 ADD COLUMN IF NOT EXISTS running_note TEXT;
 
--- ============================================
--- STEP 3: Add missing columns that exist in TypeScript types
--- ============================================
 ALTER TABLE public.daily_entries 
 ADD COLUMN IF NOT EXISTS sleep_hours DECIMAL(3,1);
 
 ALTER TABLE public.daily_entries 
 ADD COLUMN IF NOT EXISTS energy_level INTEGER CHECK (energy_level >= 1 AND energy_level <= 5);
 
-ALTER TABLE public.daily_entries 
-ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL;
-
 -- ============================================
--- STEP 4: Create unique constraint on user_id and date
--- ============================================
-ALTER TABLE public.daily_entries 
-DROP CONSTRAINT IF EXISTS daily_entries_user_id_date_key;
-
-ALTER TABLE public.daily_entries 
-ADD CONSTRAINT daily_entries_user_id_date_key UNIQUE(user_id, date);
-
--- ============================================
--- STEP 5: Enable RLS and create policies
--- ============================================
-ALTER TABLE public.daily_entries ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS "Individuals can view their own entries" ON public.daily_entries;
-DROP POLICY IF EXISTS "Individuals can insert their own entries" ON public.daily_entries;
-DROP POLICY IF EXISTS "Individuals can update their own entries" ON public.daily_entries;
-DROP POLICY IF EXISTS "Individuals can delete their own entries" ON public.daily_entries;
-
-CREATE POLICY "Individuals can view their own entries"
-ON public.daily_entries FOR SELECT
-USING (auth.uid() = user_id);
-
-CREATE POLICY "Individuals can insert their own entries"
-ON public.daily_entries FOR INSERT
-WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Individuals can update their own entries"
-ON public.daily_entries FOR UPDATE
-USING (auth.uid() = user_id);
-
-CREATE POLICY "Individuals can delete their own entries"
-ON public.daily_entries FOR DELETE
-USING (auth.uid() = user_id);
-
--- ============================================
--- STEP 6: Create trigger to auto-update updated_at
+-- STEP 7: Create trigger to auto-update updated_at
 -- ============================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
