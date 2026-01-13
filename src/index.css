@@ -4,50 +4,72 @@
 
 @layer base {
   :root {
-    /* Clean Light Theme - Monochrome with warmth */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 9%;
+    /* Liquid Glass Light Theme */
+    --background: 220 20% 97%;
+    --foreground: 220 20% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 220 20% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 94%;
-    --secondary-foreground: 0 0% 20%;
-    --muted: 0 0% 92%;
-    --muted-foreground: 0 0% 45%;
-    --accent: 0 0% 9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 72% 51%;
+    --popover-foreground: 220 20% 10%;
+    --primary: 220 90% 56%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 94%;
+    --secondary-foreground: 220 20% 20%;
+    --muted: 220 15% 92%;
+    --muted-foreground: 220 10% 45%;
+    --accent: 220 90% 56%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 89%;
-    --input: 0 0% 92%;
-    --ring: 0 0% 9%;
-    --radius: 1rem;
+    --border: 220 20% 88%;
+    --input: 220 20% 92%;
+    --ring: 220 90% 56%;
+    --chart-1: 220 90% 56%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 1.25rem;
+
+    /* Liquid Glass specific */
+    --glass-bg: rgba(255, 255, 255, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    --glass-blur: 20px;
   }
 
   .dark {
-    /* Clean Dark Theme */
-    --background: 0 0% 4%;
-    --foreground: 0 0% 95%;
-    --card: 0 0% 7%;
-    --card-foreground: 0 0% 95%;
-    --popover: 0 0% 7%;
-    --popover-foreground: 0 0% 95%;
-    --primary: 0 0% 95%;
-    --primary-foreground: 0 0% 4%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 85%;
-    --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 55%;
-    --accent: 0 0% 95%;
-    --accent-foreground: 0 0% 4%;
-    --destructive: 0 62% 55%;
+    /* Liquid Glass Dark Theme */
+    --background: 220 20% 7%;
+    --foreground: 220 10% 95%;
+    --card: 220 20% 10%;
+    --card-foreground: 220 10% 95%;
+    --popover: 220 20% 10%;
+    --popover-foreground: 220 10% 95%;
+    --primary: 220 90% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 20% 15%;
+    --secondary-foreground: 220 10% 90%;
+    --muted: 220 15% 18%;
+    --muted-foreground: 220 10% 55%;
+    --accent: 220 90% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 18%;
-    --input: 0 0% 15%;
-    --ring: 0 0% 95%;
+    --border: 220 15% 20%;
+    --input: 220 15% 18%;
+    --ring: 220 90% 60%;
+    --chart-1: 220 80% 60%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 200 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    /* Liquid Glass specific - Dark */
+    --glass-bg: rgba(30, 35, 45, 0.72);
+    --glass-border: rgba(255, 255, 255, 0.08);
+    --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --glass-blur: 20px;
   }
 }
 
@@ -61,11 +83,17 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased overscroll-none;
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    @apply bg-background text-foreground font-sans antialiased overscroll-none;
+    background-image:
+      radial-gradient(ellipse at top, hsl(var(--primary) / 0.03) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom right, hsl(var(--accent) / 0.02) 0%, transparent 40%);
     min-height: 100vh;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(ellipse at top, hsl(var(--primary) / 0.08) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom right, hsl(var(--accent) / 0.05) 0%, transparent 40%);
   }
 
   /* Remove number input spinners */
@@ -81,38 +109,77 @@
   }
 }
 
-/* Utility Classes - Minimal, Purposeful */
+/* Liquid Glass Utility Classes */
 @layer components {
-
-  /* Subtle glass for nav only */
-  .glass-nav {
-    background: hsl(var(--background) / 0.85);
-    backdrop-filter: blur(20px) saturate(180%);
-    -webkit-backdrop-filter: blur(20px) saturate(180%);
-    border-bottom: 1px solid hsl(var(--border) / 0.5);
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
   }
 
-  /* Legacy glass classes - simplified */
-  .glass,
-  .glass-subtle,
+  .glass-subtle {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  }
+
   .glass-card {
-    background: hsl(var(--muted) / 0.4);
-    border: 1px solid hsl(var(--border) / 0.3);
-    transition: background-color 0.2s ease;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow:
+      var(--glass-shadow),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+      box-shadow 0.3s ease;
   }
 
   .glass-card:hover {
-    background: hsl(var(--muted) / 0.6);
+    transform: translateY(-2px);
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  }
+
+  .dark .glass-card:hover {
+    box-shadow:
+      0 12px 40px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-nav {
+    background: var(--glass-bg);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border-bottom: 1px solid var(--glass-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   }
 
   .glass-button {
-    background: hsl(var(--secondary));
-    border: 1px solid hsl(var(--border));
-    transition: all 0.15s ease;
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.15) 0%,
+        rgba(255, 255, 255, 0.05) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    transition: all 0.2s ease;
   }
 
   .glass-button:hover {
-    background: hsl(var(--muted));
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.25) 0%,
+        rgba(255, 255, 255, 0.1) 100%);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.25);
   }
 
   .glass-button:active {
@@ -120,24 +187,90 @@
   }
 
   .glass-input {
-    background: hsl(var(--card));
-    border: 1px solid hsl(var(--border));
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.2s ease;
+  }
+
+  .dark .glass-input {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   .glass-input:focus {
-    border-color: hsl(var(--foreground));
-    box-shadow: 0 0 0 1px hsl(var(--foreground));
+    background: rgba(255, 255, 255, 0.7);
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
   }
 
-  /* Glow for success states only */
-  .shadow-glow {
-    box-shadow: 0 0 24px hsl(var(--primary) / 0.15);
+  .dark .glass-input:focus {
+    background: rgba(255, 255, 255, 0.08);
   }
 
-  .shadow-glass,
-  .shadow-glass-lg {
-    box-shadow: 0 1px 3px hsl(0 0% 0% / 0.04);
+  /* Liquid shimmer effect */
+  .glass-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        transparent 100%);
+    animation: shimmer 3s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      left: -100%;
+    }
+
+    100% {
+      left: 100%;
+    }
+  }
+
+  /* Skeleton shimmer animation */
+  @keyframes skeleton-shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Glow effects */
+  .glass-glow {
+    position: relative;
+  }
+
+  .glass-glow::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg,
+        hsl(var(--primary) / 0.3) 0%,
+        transparent 50%,
+        hsl(var(--accent) / 0.2) 100%);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .glass-glow:hover::before {
+    opacity: 1;
   }
 
   /* Shake animation for PIN error */
