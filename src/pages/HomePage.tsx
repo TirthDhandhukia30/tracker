@@ -212,7 +212,7 @@ export function HomePage() {
           </motion.button>
         </div>
 
-        {/* MONTHLY OVERVIEW */}
+        {/* MONTHLY OVERVIEW - Activity Rings */}
         <motion.section
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -223,31 +223,79 @@ export function HomePage() {
             <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
               {format(today, 'MMMM')}
             </h2>
-            <span className="text-2xl font-semibold tabular-nums">
-              {monthStats.percent}%
+            <span className="text-xs text-muted-foreground">
+              {daysPassedThisMonth} days
             </span>
           </div>
 
-          {/* Progress bar */}
-          <div className="h-1.5 bg-muted rounded-full overflow-hidden mb-6">
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${monthStats.percent}%` }}
-              transition={{ duration: 0.8, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="h-full bg-foreground rounded-full"
-            />
+          {/* Activity Rings */}
+          <div className="flex items-center justify-center mb-6">
+            <div className="relative w-36 h-36">
+              {[
+                { label: 'Run', count: monthStats.running, color: '#ef4444', bgColor: 'rgba(239, 68, 68, 0.15)' },
+                { label: 'Work', count: monthStats.work, color: '#22c55e', bgColor: 'rgba(34, 197, 94, 0.15)' },
+                { label: 'Gym', count: monthStats.gym, color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.15)' },
+              ].map((ring, index) => {
+                const percent = daysPassedThisMonth > 0 ? (ring.count / daysPassedThisMonth) * 100 : 0;
+                const size = 144 - (index * 24);
+                const strokeWidth = 10;
+                const radius = (size - strokeWidth) / 2;
+                const circumference = 2 * Math.PI * radius;
+                const offset = circumference - (percent / 100) * circumference;
+
+                return (
+                  <svg
+                    key={ring.label}
+                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-90"
+                    width={size}
+                    height={size}
+                    viewBox={`0 0 ${size} ${size}`}
+                  >
+                    <circle
+                      cx={size / 2}
+                      cy={size / 2}
+                      r={radius}
+                      fill="none"
+                      stroke={ring.bgColor}
+                      strokeWidth={strokeWidth}
+                    />
+                    <motion.circle
+                      cx={size / 2}
+                      cy={size / 2}
+                      r={radius}
+                      fill="none"
+                      stroke={ring.color}
+                      strokeWidth={strokeWidth}
+                      strokeLinecap="round"
+                      strokeDasharray={circumference}
+                      initial={{ strokeDashoffset: circumference }}
+                      animate={{ strokeDashoffset: offset }}
+                      transition={{ duration: 0.8, delay: 0.3 + index * 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+                    />
+                  </svg>
+                );
+              })}
+
+              {/* Center percentage */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-2xl font-semibold tabular-nums">{monthStats.percent}%</span>
+              </div>
+            </div>
           </div>
 
-          {/* Stats row */}
+          {/* Stats row with color dots */}
           <div className="grid grid-cols-3 gap-4 text-center">
             {[
-              { label: 'Run', count: monthStats.running },
-              { label: 'Work', count: monthStats.work },
-              { label: 'Gym', count: monthStats.gym },
+              { label: 'Run', count: monthStats.running, color: '#ef4444' },
+              { label: 'Work', count: monthStats.work, color: '#22c55e' },
+              { label: 'Gym', count: monthStats.gym, color: '#3b82f6' },
             ].map((stat) => (
               <div key={stat.label}>
-                <p className="text-2xl font-semibold tabular-nums">{stat.count}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+                <div className="flex items-center justify-center gap-1.5 mb-1">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: stat.color }} />
+                  <span className="text-xs text-muted-foreground">{stat.label}</span>
+                </div>
+                <p className="text-xl font-semibold tabular-nums">{stat.count}</p>
               </div>
             ))}
           </div>
