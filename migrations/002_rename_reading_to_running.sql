@@ -9,6 +9,15 @@ ALTER TABLE public.daily_entries
 DROP CONSTRAINT IF EXISTS daily_entries_date_key;
 
 -- ============================================
+-- STEP 0.5: Cleanup duplicate entries (keep only most recent per user_id + date)
+-- ============================================
+DELETE FROM public.daily_entries a
+USING public.daily_entries b
+WHERE a.id < b.id
+  AND a.date = b.date
+  AND a.user_id = b.user_id;
+
+-- ============================================
 -- STEP 1: Add user_id column if missing
 -- ============================================
 ALTER TABLE public.daily_entries 
