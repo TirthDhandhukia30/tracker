@@ -3,6 +3,12 @@
 -- This migration adds the missing user_id column for RLS
 
 -- ============================================
+-- STEP 0: Drop old date-only constraint (causes 409 conflicts)
+-- ============================================
+ALTER TABLE public.daily_entries 
+DROP CONSTRAINT IF EXISTS daily_entries_date_key;
+
+-- ============================================
 -- STEP 1: Add user_id column if missing
 -- ============================================
 ALTER TABLE public.daily_entries 
