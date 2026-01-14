@@ -19,6 +19,7 @@ const GYM_TYPES = [
   { value: 'push', label: 'Push' },
   { value: 'pull', label: 'Pull' },
   { value: 'legs', label: 'Legs' },
+  { value: 'cardio', label: 'Cardio' },
 ] as const;
 
 // Rotating prompts - different question each day

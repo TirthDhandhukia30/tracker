@@ -1,4 +1,4 @@
-export type GymType = 'push' | 'pull' | 'legs' | 'rest';
+export type GymType = 'push' | 'pull' | 'legs' | 'cardio' | 'rest';
 
 export interface ExerciseSet {
   reps: number;

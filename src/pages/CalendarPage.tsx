@@ -55,11 +55,13 @@ export function CalendarPage() {
 
   const getStatusColor = (date: Date, entry?: DailyEntry) => {
     if (isBefore(date, START_DATE)) return "bg-transparent text-muted-foreground/30";
-    if (!entry) return "bg-secondary/30";
-    if (entry.running && entry.work_done && entry.gym_type !== 'rest') return "bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]";
-    if ((entry.gym_type !== 'rest') || (entry.running && entry.work_done)) return "bg-green-400";
-    if (entry.running || entry.work_done || entry.gym_type !== 'rest') return "bg-green-500/40";
-    return "bg-secondary";
+    if (!entry) return "bg-muted/30 hover:bg-muted/50";
+    // Highlighted days get golden treatment
+    if (entry.is_highlighted) return "bg-amber-500 text-white";
+    if (entry.running && entry.work_done && entry.gym_type !== 'rest') return "bg-foreground text-background";
+    if ((entry.gym_type !== 'rest') || (entry.running && entry.work_done)) return "bg-foreground/80 text-background";
+    if (entry.running || entry.work_done || entry.gym_type !== 'rest') return "bg-foreground/40";
+    return "bg-muted/50";
   };
 
   return (
@@ -125,7 +127,7 @@ export function CalendarPage() {
             </div>
           </div>
         ) : (
-          <div className="glass-card p-4 rounded-3xl">
+          <div className="p-3 rounded-2xl bg-muted/30">
             <div className="grid grid-cols-7 gap-3 w-full" role="grid" aria-label="Calendar">
               {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
                 <div
@@ -147,7 +149,7 @@ export function CalendarPage() {
                 const isToday = isSameDay(day, new Date());
                 const isDisabled = isBefore(day, START_DATE);
                 const gymType = entry?.gym_type;
-                const gymLabel = gymType === 'push' ? 'P' : gymType === 'pull' ? 'U' : gymType === 'legs' ? 'L' : null;
+                const gymLabel = gymType === 'push' ? 'P' : gymType === 'pull' ? 'U' : gymType === 'legs' ? 'L' : gymType === 'cardio' ? 'C' : null;
                 const statusLabel = entry
                   ? (entry.running && entry.work_done && entry.gym_type !== 'rest'
                     ? 'all habits completed'
@@ -171,10 +173,10 @@ export function CalendarPage() {
                     aria-current={isToday ? 'date' : undefined}
                     aria-disabled={isDisabled}
                     className={cn(
-                      "aspect-square rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all border border-transparent relative overflow-hidden",
+                      "aspect-square rounded-xl flex flex-col items-center justify-center text-sm font-medium transition-all relative overflow-hidden",
                       isDisabled ? "cursor-not-allowed" : "cursor-pointer",
                       getStatusColor(day, entry),
-                      isToday && !isDisabled && "border-primary ring-2 ring-primary ring-offset-2 ring-offset-background"
+                      isToday && !isDisabled && "ring-2 ring-foreground ring-offset-1 ring-offset-background"
                     )}
                   >
                     <span className={cn(
@@ -226,21 +228,21 @@ export function CalendarPage() {
                     count: gymCount,
                     total: daysInMonth,
                     color: 'rgb(59, 130, 246)',
-                    bgColor: 'rgba(59, 130, 246, 0.2)',
+                    bgColor: 'rgba(59, 130, 246, 0.12)',
                   },
                   {
                     label: 'Run',
                     count: runningCount,
                     total: daysInMonth,
                     color: 'rgb(239, 68, 68)',
-                    bgColor: 'rgba(239, 68, 68, 0.2)',
+                    bgColor: 'rgba(239, 68, 68, 0.12)',
                   },
                   {
                     label: 'Work',
                     count: workCount,
                     total: daysInMonth,
                     color: 'rgb(34, 197, 94)',
-                    bgColor: 'rgba(34, 197, 94, 0.2)',
+                    bgColor: 'rgba(34, 197, 94, 0.12)',
                   },
                 ];
 

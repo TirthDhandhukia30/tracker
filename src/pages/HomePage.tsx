@@ -102,24 +102,17 @@ export function HomePage() {
       ) : (
         <main className="px-4 space-y-6 max-w-md mx-auto" role="main">
 
-          {/* Daily Quote */}
+          {/* Daily Quote - Minimal */}
           <motion.aside
             {...fadeInUp}
             transition={springTransition}
             aria-label="Daily inspiration"
+            className="px-1"
           >
-            <div className="glass-subtle rounded-2xl p-4 text-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="mx-auto mb-2 text-muted-foreground/40">
-                <path d="M9 5a2 2 0 0 1 2 2v6c0 3.13 -1.65 5.193 -4.757 5.97a1 1 0 1 1 -.486 -1.94c2.227 -.557 3.243 -1.827 3.243 -4.03v-1h-3a2 2 0 0 1 -1.995 -1.85l-.005 -.15v-3a2 2 0 0 1 2 -2z" />
-                <path d="M18 5a2 2 0 0 1 2 2v6c0 3.13 -1.65 5.193 -4.757 5.97a1 1 0 1 1 -.486 -1.94c2.227 -.557 3.243 -1.827 3.243 -4.03v-1h-3a2 2 0 0 1 -1.995 -1.85l-.005 -.15v-3a2 2 0 0 1 2 -2z" />
-              </svg>
-              <blockquote>
-                <p className="text-sm font-medium text-foreground/80 italic leading-relaxed">
-                  {quote.text}
-                </p>
-                <footer className="text-[11px] text-muted-foreground mt-2">— {quote.author}</footer>
-              </blockquote>
-            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              "{quote.text}"
+            </p>
+            <p className="text-xs text-muted-foreground/50 mt-1">— {quote.author}</p>
           </motion.aside>
 
           {/* Today Card - Compact */}
@@ -207,162 +200,55 @@ export function HomePage() {
             </motion.section>
           )}
 
-          {/* Steps Tracker */}
-          <motion.section
+          {/* Steps - Compact Widget */}
+          <motion.button
             {...fadeInUp}
             transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.15 }}
-            aria-label="Steps tracking"
+            onClick={() => handleNavigate('/steps-history')}
+            className="w-full glass-card rounded-2xl p-5 text-left transition-all hover:shadow-glass-lg active:scale-[0.99]"
+            aria-label="View steps history"
           >
-            <button
-              onClick={() => handleNavigate('/steps-history')}
-              className="w-full glass-card rounded-3xl p-5 text-left transition-all hover:shadow-glass-lg active:scale-[0.99]"
-              aria-label="View steps history"
-            >
-              {(() => {
-                const WEEKLY_GOAL = 70000;
+            {(() => {
+              const WEEKLY_GOAL = 70000;
+              const getWeekDays = () => {
+                const dayOfWeek = today.getDay();
+                const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                const monday = new Date(today);
+                monday.setDate(today.getDate() + mondayOffset);
+                return Array.from({ length: 7 }, (_, i) => {
+                  const date = new Date(monday);
+                  date.setDate(monday.getDate() + i);
+                  return format(date, 'yyyy-MM-dd');
+                });
+              };
+              const weekDays = getWeekDays();
+              const weeklySteps = weekDays.reduce((sum, dateStr) => {
+                const dayData = stepsData.find(d => d.date === dateStr);
+                return sum + (dayData?.steps || 0);
+              }, 0);
+              const isGoalMet = weeklySteps >= WEEKLY_GOAL;
 
-                // Get the current week (Monday to Sunday)
-                const getWeekDays = () => {
-                  const now = new Date();
-                  const dayOfWeek = now.getDay();
-                  // Adjust so Monday = 0, Sunday = 6
-                  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-                  const monday = new Date(now);
-                  monday.setDate(now.getDate() + mondayOffset);
-
-                  return Array.from({ length: 7 }, (_, i) => {
-                    const date = new Date(monday);
-                    date.setDate(monday.getDate() + i);
-                    return format(date, 'yyyy-MM-dd');
-                  });
-                };
-
-                const weekDays = getWeekDays();
-                const dayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-
-                // Calculate weekly total
-                const weeklySteps = weekDays.reduce((sum, dateStr) => {
-                  const dayData = stepsData.find(d => d.date === dateStr);
-                  return sum + (dayData?.steps || 0);
-                }, 0);
-
-                const progressPercent = Math.min((weeklySteps / WEEKLY_GOAL) * 100, 100);
-                const isGoalMet = weeklySteps >= WEEKLY_GOAL;
-
-                return (
-                  <>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-xl bg-cyan-500/15 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-cyan-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M4 16v-2.38c0-.73.25-1.42.67-1.97l.61-.84c.51-.71.32-1.74-.45-2.15a1.51 1.51 0 0 1-.49-2.27l1.61-1.89a1.5 1.5 0 0 1 2.54.47l.52 1.57c.27.82 1.04 1.36 1.9 1.36h1.18" />
-                            <path d="M20 16v-2.38c0-.73-.25-1.42-.67-1.97l-.61-.84c-.51-.71-.32-1.74.45-2.15a1.51 1.51 0 0 0 .49-2.27l-1.61-1.89a1.5 1.5 0 0 0-2.54.47l-.52 1.57c-.27.82-1.04 1.36-1.9 1.36h-1.18" />
-                            <path d="M8 20h8" />
-                            <path d="M12 16v4" />
-                          </svg>
-                        </div>
-                        <h3 className="text-sm font-semibold text-foreground">Weekly Steps</h3>
-                      </div>
-                      <span className={cn(
-                        "text-xs font-medium px-2 py-1 rounded-lg",
-                        isGoalMet ? "bg-green-500/15 text-green-600 dark:text-green-400" : "text-muted-foreground"
-                      )}>
-                        {(weeklySteps / 1000).toFixed(1)}K / 70K
-                      </span>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="h-2 bg-secondary/50 rounded-full overflow-hidden mb-5">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progressPercent}%` }}
-                        transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 100, damping: 20 }}
-                        className={cn(
-                          "h-full rounded-full",
-                          isGoalMet ? "bg-green-500" : "bg-primary"
-                        )}
-                      />
-                    </div>
-
-                    {/* Weekly breakdown */}
-                    <div className="grid grid-cols-7 gap-2">
-                      {weekDays.map((dateStr, i) => {
-                        const dayData = stepsData.find(d => d.date === dateStr);
-                        const steps = dayData?.steps || 0;
-                        const isToday = dateStr === todayStr;
-                        const isFutureDay = new Date(dateStr) > today;
-                        const dailyGoal = 10000; // 10K per day for 70K weekly
-                        const dayProgress = Math.min((steps / dailyGoal) * 100, 100);
-
-                        return (
-                          <div
-                            key={dateStr}
-                            className={cn(
-                              "flex flex-col items-center gap-1 py-2 px-1 rounded-xl transition-colors",
-                              isToday && "bg-primary/10"
-                            )}
-                          >
-                            <span className={cn(
-                              "text-[10px] font-medium",
-                              isToday ? "text-primary" : "text-muted-foreground"
-                            )}>
-                              {dayLabels[i]}
-                            </span>
-
-                            {/* Mini progress circle */}
-                            <div className="relative h-8 w-8">
-                              <svg className="h-8 w-8 -rotate-90" viewBox="0 0 32 32">
-                                <circle
-                                  cx="16"
-                                  cy="16"
-                                  r="14"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="3"
-                                  className="text-secondary/50"
-                                />
-                                {!isFutureDay && (
-                                  <motion.circle
-                                    cx="16"
-                                    cy="16"
-                                    r="14"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="3"
-                                    strokeLinecap="round"
-                                    className={cn(
-                                      steps >= dailyGoal ? "text-green-500" : "text-primary"
-                                    )}
-                                    initial={{ strokeDasharray: "0 88" }}
-                                    animate={{ strokeDasharray: `${(dayProgress / 100) * 88} 88` }}
-                                    transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 100, damping: 20, delay: i * 0.05 }}
-                                  />
-                                )}
-                              </svg>
-                            </div>
-
-                            <span className={cn(
-                              "text-[10px] font-medium tabular-nums",
-                              isFutureDay ? "text-muted-foreground/30" :
-                                steps > 0 ? "text-foreground" : "text-muted-foreground/50"
-                            )}>
-                              {isFutureDay ? '—' : steps > 0 ? `${(steps / 1000).toFixed(1)}` : '0'}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* View history indicator */}
-                    <div className="flex items-center justify-center mt-4 text-xs text-muted-foreground/60">
-                      <span>View history</span>
-                      <span className="ml-0.5">→</span>
-                    </div>
-                  </>
-                );
-              })()}
-            </button>
-          </motion.section>
+              return (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">This Week</p>
+                    <p className="text-3xl font-semibold tabular-nums tracking-tight">
+                      {(weeklySteps / 1000).toFixed(0)}
+                      <span className="text-lg font-normal text-muted-foreground ml-0.5">K</span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className={cn(
+                      "text-xs font-medium",
+                      isGoalMet ? "text-green-600 dark:text-green-400" : "text-muted-foreground"
+                    )}>
+                      {isGoalMet ? '✓ Goal hit' : `${((weeklySteps / WEEKLY_GOAL) * 100).toFixed(0)}% of 70K`}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+          </motion.button>
 
           {/* Monthly Activity */}
           <motion.section
@@ -377,27 +263,28 @@ export function HomePage() {
               const workCount = monthEntries.filter(e => e.work_done).length;
               const gymCount = monthEntries.filter(e => e.gym_type && e.gym_type !== 'rest').length;
 
+              // Muted ring colors for cleaner look
               const rings = [
                 {
                   label: 'Run',
                   count: runningCount,
                   total: daysPassedThisMonth,
-                  color: 'rgb(239, 68, 68)', // red
-                  bgColor: 'rgba(239, 68, 68, 0.2)',
+                  color: 'rgb(239, 68, 68)',
+                  bgColor: 'rgba(239, 68, 68, 0.12)',
                 },
                 {
                   label: 'Work',
                   count: workCount,
                   total: daysPassedThisMonth,
-                  color: 'rgb(34, 197, 94)', // green
-                  bgColor: 'rgba(34, 197, 94, 0.2)',
+                  color: 'rgb(34, 197, 94)',
+                  bgColor: 'rgba(34, 197, 94, 0.12)',
                 },
                 {
                   label: 'Gym',
                   count: gymCount,
                   total: daysPassedThisMonth,
-                  color: 'rgb(59, 130, 246)', // blue
-                  bgColor: 'rgba(59, 130, 246, 0.2)',
+                  color: 'rgb(59, 130, 246)',
+                  bgColor: 'rgba(59, 130, 246, 0.12)',
                 },
               ];
 
@@ -492,36 +379,32 @@ export function HomePage() {
                     })}
                   </div>
 
-                  {/* Highlighted Days */}
+                  {/* Highlighted Days - Compact */}
                   {(() => {
                     const highlightedDays = monthEntries.filter(e => e.is_highlighted);
                     if (highlightedDays.length === 0) return null;
 
                     return (
-                      <div className="mt-6 pt-4 border-t border-border/30">
-                        <div className="flex items-center gap-2 mb-3">
-                          <svg className="w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="currentColor">
-                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                          </svg>
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {highlightedDays.length} special {highlightedDays.length === 1 ? 'day' : 'days'}
+                      <div className="mt-5 pt-4 border-t border-border/20">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">
+                            {highlightedDays.length} starred
                           </span>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {highlightedDays.map(day => (
-                            <button
-                              key={day.date}
-                              onClick={() => handleNavigate(`/date/${day.date}`)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 transition-colors"
-                            >
-                              <svg className="w-3 h-3 text-amber-500" viewBox="0 0 24 24" fill="currentColor">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                              </svg>
-                              <span className="text-xs font-medium text-amber-600 dark:text-amber-400">
-                                {format(new Date(day.date), 'MMM d')}
-                              </span>
-                            </button>
-                          ))}
+                          <div className="flex gap-1.5">
+                            {highlightedDays.slice(0, 5).map(day => (
+                              <button
+                                key={day.date}
+                                onClick={() => handleNavigate(`/date/${day.date}`)}
+                                className="w-7 h-7 rounded-lg bg-muted/60 hover:bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                                title={format(new Date(day.date), 'MMM d')}
+                              >
+                                {format(new Date(day.date), 'd')}
+                              </button>
+                            ))}
+                            {highlightedDays.length > 5 && (
+                              <span className="text-xs text-muted-foreground/50 self-center ml-1">+{highlightedDays.length - 5}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );

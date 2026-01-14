@@ -13,7 +13,7 @@ create table if not exists public.daily_entries (
   work_note text, -- What did you work on?
   
   -- Workout
-  gym_type text check (gym_type in ('rest', 'push', 'pull', 'legs')),
+  gym_type text check (gym_type in ('rest', 'push', 'pull', 'legs', 'cardio')),
   exercises jsonb default '[]'::jsonb, -- Array of {name, sets: [{reps, weight}], unit: 'kg'|'lbs'}
   
   -- Health metrics
