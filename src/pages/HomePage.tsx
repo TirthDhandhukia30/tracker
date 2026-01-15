@@ -2,11 +2,13 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDayOfYear } from 'date-fns';
 import { useHomeData } from '@/hooks/useHomeData';
+import { useStreak } from '@/hooks/useStreak';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { cn } from '@/lib/utils';
 import { haptics } from '@/lib/haptics';
 import { motion } from 'framer-motion';
 import { WeightChart } from '@/components/WeightChart';
+import { toast } from 'sonner';
 
 import { Skeleton, SkeletonCard, SkeletonChart, SkeletonCalendar } from '@/components/ui/skeleton';
 
@@ -45,6 +47,7 @@ export function HomePage() {
   }, [todayStr]);
 
   const { data, isLoading } = useHomeData();
+  const { streak, isCheckedToday, canRestore, missedDays, restoreStreak, isRestoring } = useStreak();
   const todayEntry = data?.todayEntry || null;
   const monthEntries = data?.monthEntries || [];
   const weightData = data?.weightData || [];
@@ -63,6 +66,20 @@ export function HomePage() {
   const handleNavigate = (path: string) => {
     haptics.light();
     navigate(path);
+  };
+
+  const handleRestoreStreak = () => {
+    haptics.medium();
+    restoreStreak(undefined, {
+      onSuccess: () => {
+        haptics.success();
+        toast.success(`Restored ${missedDays} missed day${missedDays > 1 ? 's' : ''}!`);
+      },
+      onError: () => {
+        haptics.error();
+        toast.error('Failed to restore streak');
+      }
+    });
   };
 
   return (
@@ -188,6 +205,141 @@ export function HomePage() {
               </svg>
             </div>
           </motion.button>
+
+          {/* Streak Counter - Dynamic Widget */}
+          <motion.div
+            {...fadeInUp}
+            transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.075 }}
+            className={cn(
+              "relative overflow-hidden rounded-2xl p-5 transition-all",
+              streak >= 30
+                ? "bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-400"
+                : streak >= 14
+                  ? "bg-gradient-to-br from-orange-500 to-amber-500"
+                  : streak >= 7
+                    ? "bg-gradient-to-r from-orange-500/90 to-amber-500/80"
+                    : streak > 0
+                      ? "bg-gradient-to-r from-orange-500/70 to-amber-500/60"
+                      : "glass-card"
+            )}
+            aria-label={`Current streak: ${streak} days`}
+          >
+            {/* Animated glow for high streaks */}
+            {streak >= 7 && (
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent"
+                animate={prefersReducedMotion ? {} : {
+                  x: ['-100%', '200%'],
+                }}
+                transition={{
+                  repeat: Infinity,
+                  duration: 3,
+                  ease: 'easeInOut',
+                }}
+              />
+            )}
+
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                {/* Flame Icon with pulse for active streak */}
+                <div className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center",
+                  streak > 0
+                    ? "bg-white/20"
+                    : "bg-secondary/60"
+                )}>
+                  <motion.svg
+                    className={cn(
+                      "w-6 h-6",
+                      streak > 0 ? "text-white" : "text-muted-foreground"
+                    )}
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    animate={streak > 0 && !prefersReducedMotion ? {
+                      scale: [1, 1.1, 1],
+                    } : {}}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 2,
+                      ease: 'easeInOut',
+                    }}
+                  >
+                    <path d="M12 23a7.5 7.5 0 0 1-5.138-12.963C8.204 8.774 11.5 6.5 11 1.5c6 4 9 8 3 14 1 0 2.5 0 5-2.47.27.773.5 1.604.5 2.47A7.5 7.5 0 0 1 12 23z" />
+                  </motion.svg>
+                </div>
+
+                <div>
+                  <p className={cn(
+                    "text-3xl font-bold tabular-nums tracking-tight",
+                    streak > 0 ? "text-white" : "text-foreground"
+                  )}>
+                    {streak}
+                    <span className={cn(
+                      "text-base font-medium ml-1",
+                      streak > 0 ? "text-white/70" : "text-muted-foreground"
+                    )}>
+                      {streak === 1 ? 'day' : 'days'}
+                    </span>
+                  </p>
+                  <p className={cn(
+                    "text-xs font-medium",
+                    streak > 0 ? "text-white/60" : "text-muted-foreground"
+                  )}>
+                    {streak === 0
+                      ? "Start your streak today"
+                      : streak >= 30
+                        ? "🔥 Legendary!"
+                        : streak >= 14
+                          ? "🔥 On fire!"
+                          : streak >= 7
+                            ? "Keep it going!"
+                            : isCheckedToday
+                              ? "Checked in today"
+                              : "Check in to continue"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Streak milestones indicator */}
+              {streak > 0 && (
+                <div className="flex flex-col items-end gap-1">
+                  {[7, 14, 30].map((milestone) => (
+                    <div
+                      key={milestone}
+                      className={cn(
+                        "h-1.5 rounded-full transition-all",
+                        streak >= milestone
+                          ? "w-8 bg-white"
+                          : "w-4 bg-white/30"
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Restore option if streak can be recovered */}
+            {canRestore && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="mt-4 pt-4 border-t border-white/20"
+              >
+                <button
+                  onClick={handleRestoreStreak}
+                  disabled={isRestoring}
+                  className="w-full py-2.5 px-4 rounded-xl bg-white/20 hover:bg-white/30 active:bg-white/40 text-white text-sm font-medium transition-all disabled:opacity-50"
+                >
+                  {isRestoring
+                    ? "Restoring..."
+                    : `Restore ${missedDays} missed day${missedDays > 1 ? 's' : ''}`}
+                </button>
+                <p className="text-[10px] text-white/50 text-center mt-2">
+                  Forgot to check in? We've got you.
+                </p>
+              </motion.div>
+            )}
+          </motion.div>
 
           {/* Weight Chart */}
           {weightData.length > 0 && (

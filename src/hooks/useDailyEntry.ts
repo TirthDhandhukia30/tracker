@@ -7,6 +7,7 @@ const createDefaultEntry = (date: string): DailyEntry => ({
   date,
   running: false,
   work_done: false,
+  streak_check: false,
   gym_type: 'rest',
   exercises: [],
   current_weight: undefined,
@@ -101,6 +102,7 @@ export function useDailyEntry(dateStr: string) {
         running_note: entryToSave.running_note || null,
         work_done: entryToSave.work_done,
         work_note: entryToSave.work_note || null,
+        streak_check: entryToSave.streak_check || false,
         gym_type: entryToSave.gym_type,
         exercises: entryToSave.exercises,
         current_weight: entryToSave.current_weight || null,
@@ -180,7 +182,7 @@ export function useDailyEntry(dateStr: string) {
   }, []);
 
   // Toggle habit helper
-  const toggleHabit = useCallback((key: 'running' | 'work_done') => {
+  const toggleHabit = useCallback((key: 'running' | 'work_done' | 'streak_check') => {
     setEntry(prev => ({ ...prev, [key]: !prev[key] }));
   }, []);
 

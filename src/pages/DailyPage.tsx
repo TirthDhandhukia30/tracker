@@ -64,7 +64,7 @@ export function DailyPage() {
     resizeTextarea();
   }, [entry.note, resizeTextarea]);
 
-  const handleToggleHabit = (key: 'running' | 'work_done') => {
+  const handleToggleHabit = (key: 'running' | 'work_done' | 'streak_check') => {
     haptics.light();
     toggleHabit(key);
   };
@@ -347,6 +347,29 @@ export function DailyPage() {
               </motion.div>
             )}
           </div>
+
+          {/* Streak */}
+          <motion.button
+            whileTap={prefersReducedMotion ? {} : { scale: 0.98 }}
+            onClick={() => handleToggleHabit('streak_check')}
+            role="switch"
+            aria-checked={entry.streak_check}
+            aria-label={`Streak: ${entry.streak_check ? 'checked' : 'not checked'}. Tap to toggle.`}
+            className={cn(
+              "w-full h-14 rounded-2xl flex items-center justify-between px-5 transition-all select-none",
+              entry.streak_check
+                ? "bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-glow"
+                : "glass-card hover:shadow-glass-lg"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 23a7.5 7.5 0 0 1-5.138-12.963C8.204 8.774 11.5 6.5 11 1.5c6 4 9 8 3 14 1 0 2.5 0 5-2.47.27.773.5 1.604.5 2.47A7.5 7.5 0 0 1 12 23z" />
+              </svg>
+              <span className="font-medium">Streak</span>
+            </div>
+            {entry.streak_check && <Check className="h-5 w-5" aria-hidden="true" />}
+          </motion.button>
 
           {/* Steps */}
           <div className="glass-card rounded-2xl h-14 flex items-center justify-between px-5">

@@ -11,6 +11,7 @@ create table if not exists public.daily_entries (
   running_note text, -- Distance, time, or notes about the run
   work_done boolean default false,
   work_note text, -- What did you work on?
+  streak_check boolean default false, -- Daily streak check-in
   
   -- Workout
   gym_type text check (gym_type in ('rest', 'push', 'pull', 'legs', 'cardio')),

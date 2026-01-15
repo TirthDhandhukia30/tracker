@@ -19,6 +19,7 @@ export interface DailyEntry {
   running_note?: string; // Distance, time, or notes about the run
   work_done: boolean;
   work_note?: string; // What did you work on?
+  streak_check?: boolean; // Daily streak check-in
   gym_type: GymType;
   exercises: Exercise[];
   current_weight?: number;
