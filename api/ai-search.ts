@@ -7,6 +7,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY;
+// Service role key bypasses RLS - ONLY use server-side for trusted operations
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
 
 // Allowed origins - restrict to your production domain
 const ALLOWED_ORIGINS = [
@@ -240,13 +242,13 @@ async function upsertEntry(date: string, updates: Partial<DailyEntry>): Promise<
     throw new Error('Invalid date format');
   }
 
-  // First get existing entry
+  // First get existing entry (using service key to bypass RLS)
   const getResponse = await fetch(
     `${SUPABASE_URL}/rest/v1/daily_entries?date=eq.${date}&select=*`,
     {
       headers: {
-        'apikey': SUPABASE_ANON_KEY!,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_SERVICE_KEY!,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
       },
     }
   );
@@ -276,13 +278,14 @@ async function upsertEntry(date: string, updates: Partial<DailyEntry>): Promise<
     is_highlighted: Boolean(updates.is_highlighted ?? existingEntry.is_highlighted ?? false),
   };
 
+  // Use service key to bypass RLS for server-side writes
   const upsertResponse = await fetch(
-    `${SUPABASE_URL}/rest/v1/daily_entries`,
+    `${SUPABASE_URL}/rest/v1/daily_entries?on_conflict=date`,
     {
       method: 'POST',
       headers: {
-        'apikey': SUPABASE_ANON_KEY!,
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_SERVICE_KEY!,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
         'Content-Type': 'application/json',
         'Prefer': 'resolution=merge-duplicates',
       },
@@ -291,7 +294,9 @@ async function upsertEntry(date: string, updates: Partial<DailyEntry>): Promise<
   );
 
   if (!upsertResponse.ok) {
-    throw new Error('Failed to save entry');
+    const errorText = await upsertResponse.text();
+    console.error('[UPSERT ERROR]', upsertResponse.status, errorText);
+    throw new Error(`Failed to save entry: ${upsertResponse.status}`);
   }
 
   return payload;
