@@ -44,8 +44,8 @@ function summarizeEntries(entries: DailyEntry[]): string {
     if (entry.current_weight) parts.push(`Weight: ${entry.current_weight}kg`);
     if (entry.daily_steps) parts.push(`Steps: ${entry.daily_steps}`);
     if (entry.note) parts.push(`Note: ${entry.note}`);
-    if (entry.is_highlighted) parts.push(`⭐ Highlighted day`);
-    if (entry.streak_check) parts.push(`Streak: Checked`);
+    if (entry.is_highlighted) parts.push(`Starred`);
+    if (entry.streak_check) parts.push(`Streak: Yes`);
 
     return parts.join(' | ');
   }).join('\n');
@@ -73,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   if (!GROQ_API_KEY) {
-    return res.status(500).json({ error: 'GROQ_API_KEY not configured' });
+    return res.status(500).json({ error: 'Service unavailable' });
   }
 
   try {
@@ -91,36 +91,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           {
             role: 'system',
-            content: `You are an intelligent personal journal analyst. Your role is to analyze the user's daily tracking data and provide clear, insightful responses.
+            content: `You analyze personal journal data. Respond with structured JSON only.
 
-RESPONSE FORMAT:
-Always respond with valid JSON in this structure:
+VOICE
+Minimal. Calm. Precise.
+Simple words. Short sentences.
+Start with the insight. Skip the preamble.
+No filler. No fluff. No teaching unless asked.
+Warm but quiet. Confident but never loud.
+
+RESPONSE FORMAT
 {
-  "summary": "A brief 1-2 sentence summary of the insight",
-  "details": "Optional longer explanation if needed",
+  "summary": "The key insight in one clear sentence",
+  "details": "Brief context if needed, otherwise null",
   "metrics": [
-    {"label": "Metric Name", "value": "12,345", "unit": "steps", "trend": "up|down|neutral"}
+    {"label": "Steps", "value": "12,345", "unit": "today", "trend": "up"}
   ],
   "highlights": [
-    {"date": "2024-01-15", "title": "Best Day", "description": "Walked 15,000 steps"}
+    {"date": "2024-01-15", "title": "Best day", "description": "15,000 steps"}
   ],
-  "suggestion": "Optional actionable suggestion"
+  "suggestion": "One actionable thought, or null"
 }
 
-ANALYSIS GUIDELINES:
-- Be analytical and data-driven
-- Use specific numbers and dates
-- Compare to averages when relevant
-- Identify patterns and trends
-- Keep summaries concise but insightful
-- For step queries, always include the exact step count
-- For date queries, include the specific dates found
-- For trend questions, calculate actual percentages
+GUIDELINES
+- Use specific numbers. Be precise.
+- Trend: "up" if good, "down" if declining, "neutral" otherwise
+- highlights: only include when referencing specific dates
+- metrics: use for key statistics worth showing prominently
+- Keep descriptions under 10 words
+- Omit empty arrays and null fields from response
 
-DATA CONTEXT:
-Today's date: ${new Date().toISOString().split('T')[0]}
+Today: ${new Date().toISOString().split('T')[0]}
 
-USER'S JOURNAL DATA:
+DATA
 ${dataSummary}`,
           },
           {
@@ -128,42 +131,35 @@ ${dataSummary}`,
             content: query,
           },
         ],
-        temperature: 0.3,
-        max_tokens: 1024,
+        temperature: 0.2,
+        max_tokens: 800,
       }),
     });
 
     if (!groqResponse.ok) {
-      const error = await groqResponse.text();
-      console.error('Groq API error:', error);
-      return res.status(500).json({ error: 'AI service error' });
+      console.error('API error:', await groqResponse.text());
+      return res.status(500).json({ error: 'Service unavailable' });
     }
 
     const data = await groqResponse.json();
     const aiResponse = data.choices?.[0]?.message?.content || '';
 
-    // Try to parse as JSON, fallback to text response
     let parsedResponse;
     try {
-      // Extract JSON from response if wrapped in code blocks
       const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) ||
-        aiResponse.match(/```\s*([\s\S]*?)\s*```/);
-      const jsonStr = jsonMatch ? jsonMatch[1] : aiResponse;
+        aiResponse.match(/```\s*([\s\S]*?)\s*```/) ||
+        aiResponse.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : aiResponse;
       parsedResponse = JSON.parse(jsonStr);
     } catch {
-      // Fallback to simple text response
       parsedResponse = {
-        summary: aiResponse,
-        details: null,
-        metrics: [],
-        highlights: [],
-        suggestion: null
+        summary: aiResponse.trim(),
       };
     }
 
     return res.status(200).json({ response: parsedResponse });
   } catch (error) {
     console.error('Error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Service unavailable' });
   }
 }
