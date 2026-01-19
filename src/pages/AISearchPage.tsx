@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { haptics } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
-import { Send, Loader2, TrendingUp, TrendingDown, Minus, Calendar, Lightbulb, ArrowLeft } from 'lucide-react';
+import { Send, Loader2, TrendingUp, TrendingDown, Minus, Calendar, Lightbulb, ArrowLeft, Check } from 'lucide-react';
 
 interface Metric {
   label: string;
@@ -25,6 +25,9 @@ interface AIResponse {
   metrics?: Metric[];
   highlights?: Highlight[];
   suggestion?: string | null;
+  actionExecuted?: boolean;
+  actionDate?: string;
+  actionError?: string;
 }
 
 interface Message {
@@ -36,10 +39,11 @@ interface Message {
 }
 
 const EXAMPLE_QUERIES = [
-  "What was my best day this week?",
-  "How many steps did I walk yesterday?",
+  "Log 8000 steps for today",
+  "I did a push session today",
+  "What workout should I do?",
   "Show my gym activity this month",
-  "When did I complete all habits?",
+  "Mark today's work as done",
 ];
 
 export function AISearchPage() {
@@ -144,8 +148,8 @@ export function AISearchPage() {
             <ArrowLeft className="w-5 h-5" />
           </motion.button>
           <div>
-            <h1 className="text-lg font-semibold tracking-tight">Intelligence</h1>
-            <p className="text-[10px] text-muted-foreground">Ask about your journal</p>
+            <h1 className="text-lg font-semibold tracking-tight">Assistant</h1>
+            <p className="text-[10px] text-muted-foreground">Ask or log anything</p>
           </div>
         </div>
       </header>
@@ -179,9 +183,9 @@ export function AISearchPage() {
                   </defs>
                 </svg>
               </div>
-              <h2 className="text-xl font-semibold mb-2">Ask anything</h2>
+              <h2 className="text-xl font-semibold mb-2">How can I help?</h2>
               <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto">
-                Get insights about your habits, trends, and progress
+                Ask questions, log data, or get workout suggestions
               </p>
 
               {/* Example queries - pill style */}
@@ -231,6 +235,31 @@ export function AISearchPage() {
                           </p>
                         )}
                       </div>
+
+                      {/* Action Confirmation */}
+                      {message.response.actionExecuted && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-green-500/10 border border-green-500/20"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                            <Check className="w-4 h-4 text-green-400" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-green-400">Saved</p>
+                            <p className="text-xs text-muted-foreground">
+                              {message.response.actionDate && new Date(message.response.actionDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </p>
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {message.response.actionError && (
+                        <div className="flex items-center gap-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                          <p className="text-sm text-red-400">{message.response.actionError}</p>
+                        </div>
+                      )}
 
                       {/* Metrics Grid */}
                       {message.response.metrics && message.response.metrics.length > 0 && (
@@ -361,7 +390,7 @@ export function AISearchPage() {
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask about your journal..."
+                placeholder="Log steps, ask questions, get suggestions..."
                 disabled={isLoading}
                 className="w-full h-12 px-4 rounded-2xl bg-secondary/50 border border-border/50 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 disabled:opacity-50 transition-all"
               />
