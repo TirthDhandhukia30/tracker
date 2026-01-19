@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { Loading01Icon } from 'hugeicons-react';
 import { cn } from '@/lib/utils';
 
 interface LoadingStateProps {
@@ -9,7 +9,7 @@ interface LoadingStateProps {
 export function LoadingState({ message, className }: LoadingStateProps) {
   return (
     <div className={cn('flex flex-col items-center justify-center py-12', className)}>
-      <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      <Loading01Icon className="w-6 h-6 animate-spin text-muted-foreground" />
       {message && (
         <p className="mt-3 text-sm text-muted-foreground">{message}</p>
       )}

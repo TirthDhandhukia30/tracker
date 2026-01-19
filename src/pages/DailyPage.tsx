@@ -7,7 +7,17 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Skeleton, SkeletonHabitButton, SkeletonExercise } from '@/components/ui/skeleton';
-import { ArrowLeft, Plus, Trash2, Check, Briefcase, History, Sparkles, Footprints } from 'lucide-react';
+import {
+  ArrowLeft01Icon,
+  PlusSignIcon,
+  Delete02Icon,
+  Tick01Icon,
+  Briefcase01Icon,
+  HistoryIcon,
+  SparklesIcon,
+  RunningShoesIcon,
+  FireIcon
+} from 'hugeicons-react';
 import type { GymType, Exercise } from '@/types';
 import { cn } from '@/lib/utils';
 import { haptics } from '@/lib/haptics';

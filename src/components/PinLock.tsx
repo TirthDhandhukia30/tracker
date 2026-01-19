@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { haptics } from '@/lib/haptics';
-import { Delete, Lock } from 'lucide-react';
+import { Cancel01Icon, LockKeyIcon } from 'hugeicons-react';
 
 // SHA-256 hash of the correct PIN - not reversible
 const PIN_HASH = '7611f1a57f80b0a87b4178e2e5f16bafa30dd0d9947d99f953c091d8c96abd0e';
@@ -92,7 +92,7 @@ export function PinLock({ onUnlock }: PinLockProps) {
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background">
       {/* Background gradient matching the app theme */}
-      <div 
+      <div
         className="absolute inset-0 pointer-events-none"
         style={{
           backgroundImage: `
@@ -106,18 +106,18 @@ export function PinLock({ onUnlock }: PinLockProps) {
       <div className="relative flex flex-col items-center px-6">
         {/* Lock icon */}
         <div className="glass-card w-20 h-20 rounded-full flex items-center justify-center mb-6">
-          <Lock className="w-8 h-8 text-primary" />
+          <LockKeyIcon className="w-8 h-8 text-primary" />
         </div>
 
         {/* Title */}
         <h1 className="text-foreground text-2xl font-semibold mb-2">
           {isLocked ? 'Locked Out' : 'Enter Passcode'}
         </h1>
-        
+
         <p className="text-muted-foreground text-sm mb-8">
-          {isLocked 
-            ? `Try again in ${timeLeft} seconds` 
-            : attempts > 0 && !error 
+          {isLocked
+            ? `Try again in ${timeLeft} seconds`
+            : attempts > 0 && !error
               ? `${MAX_ATTEMPTS - attempts} attempts remaining`
               : 'Enter your 4-digit passcode'
           }
@@ -130,10 +130,10 @@ export function PinLock({ onUnlock }: PinLockProps) {
               key={i}
               className={cn(
                 "w-4 h-4 rounded-full transition-all duration-200",
-                error 
-                  ? "bg-destructive" 
-                  : pin.length > i 
-                    ? "bg-primary scale-110" 
+                error
+                  ? "bg-destructive"
+                  : pin.length > i
+                    ? "bg-primary scale-110"
                     : "bg-muted-foreground/30",
                 error && "animate-shake"
               )}
@@ -161,13 +161,13 @@ export function PinLock({ onUnlock }: PinLockProps) {
                     (isLocked || pin.length === 0) && "opacity-30 pointer-events-none"
                   )}
                 >
-                  <Delete className="w-6 h-6" />
+                  <Cancel01Icon className="w-6 h-6" />
                 </button>
               );
             }
 
             const letters = getLettersForNumber(key);
-            
+
             return (
               <button
                 key={key}
@@ -193,7 +193,7 @@ export function PinLock({ onUnlock }: PinLockProps) {
 
         {/* Cancel button */}
         {pin.length > 0 && !isLocked && (
-          <button 
+          <button
             onClick={() => setPin('')}
             className="mt-8 text-muted-foreground text-sm hover:text-foreground transition-colors"
           >

@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { haptics } from '@/lib/haptics';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { ArrowLeft01Icon, ArrowRight01Icon, StarIcon } from 'hugeicons-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { motion } from 'framer-motion';
@@ -76,7 +76,7 @@ export function CalendarPage() {
             className="rounded-xl mr-3"
             aria-label="Go back to home"
           >
-            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            <ArrowLeft01Icon className="h-5 w-5" aria-hidden="true" />
           </Button>
           <h1 className="font-bold text-lg tracking-tight">Calendar</h1>
         </div>
@@ -96,7 +96,7 @@ export function CalendarPage() {
             className={cn("rounded-xl", !canGoPrev && "opacity-30")}
             aria-label="Previous month"
           >
-            <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+            <ArrowLeft01Icon className="h-5 w-5" aria-hidden="true" />
           </Button>
           <div className="text-center">
             <h2 className="text-xl font-bold tracking-tight" aria-live="polite">{format(month, 'MMMM yyyy')}</h2>
@@ -111,7 +111,7 @@ export function CalendarPage() {
             className="rounded-xl"
             aria-label="Next month"
           >
-            <ChevronRight className="h-5 w-5" aria-hidden="true" />
+            <ArrowRight01Icon className="h-5 w-5" aria-hidden="true" />
           </Button>
         </nav>
 
@@ -200,9 +200,7 @@ export function CalendarPage() {
                     {/* Highlighted day star */}
                     {entry?.is_highlighted && !isDisabled && (
                       <div className="absolute top-0.5 right-0.5" aria-label="Highlighted day">
-                        <svg className="w-2.5 h-2.5 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
-                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                        </svg>
+                        <StarIcon className="w-2.5 h-2.5 text-amber-400" fill="currentColor" />
                       </div>
                     )}
                   </motion.button>

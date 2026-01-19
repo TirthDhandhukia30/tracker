@@ -9,7 +9,7 @@ import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { haptics } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowDown01Icon, ArrowRight01Icon, ArrowLeft01Icon } from 'hugeicons-react';
 
 interface DayEntry {
   date: string;
@@ -131,6 +131,7 @@ export function StepsHistoryPage() {
         totalSteps: currentWeekDays.reduce((sum, d) => sum + (d.steps || 0), 0),
         days: [...currentWeekDays],
         isComplete: isBefore(weekEnd, today),
+
       });
     }
 
@@ -262,7 +263,7 @@ export function StepsHistoryPage() {
             className="h-10 w-10 rounded-xl glass-card flex items-center justify-center hover:bg-secondary/50 transition-colors text-lg"
             aria-label="Go back"
           >
-            ←
+            <ArrowLeft01Icon className="w-5 h-5" />
           </motion.button>
           <div>
             <motion.h1
@@ -410,9 +411,9 @@ export function StepsHistoryPage() {
                     >
                       <div className="flex items-center gap-3">
                         {isMonthExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                          <ArrowDown01Icon className="w-4 h-4 text-muted-foreground" />
                         ) : (
-                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                          <ArrowRight01Icon className="w-4 h-4 text-muted-foreground" />
                         )}
                         <div>
                           <p className="text-sm font-semibold">{month.label}</p>
@@ -459,9 +460,9 @@ export function StepsHistoryPage() {
                                     <div className="flex items-center gap-3">
                                       <div className="w-6 flex justify-center">
                                         {isWeekExpanded ? (
-                                          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                                          <ArrowDown01Icon className="w-3.5 h-3.5 text-muted-foreground" />
                                         ) : (
-                                          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                                          <ArrowRight01Icon className="w-3.5 h-3.5 text-muted-foreground" />
                                         )}
                                       </div>
                                       <div>

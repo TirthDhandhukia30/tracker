@@ -4,7 +4,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { haptics } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
-import { Send, Loader2, TrendingUp, TrendingDown, Minus, Calendar, Lightbulb, ArrowLeft, Check } from 'lucide-react';
+import {
+  SentIcon,
+  Loading01Icon,
+  TradeUpIcon,
+  TradeDownIcon,
+  MinusSignIcon,
+  Calendar01Icon,
+  BulbIcon,
+  ArrowLeft01Icon,
+  Tick01Icon
+} from 'hugeicons-react';
 
 interface Metric {
   label: string;
@@ -129,9 +139,9 @@ export function AISearchPage() {
   };
 
   const TrendIcon = ({ trend }: { trend?: string }) => {
-    if (trend === 'up') return <TrendingUp className="w-4 h-4 text-green-400" />;
-    if (trend === 'down') return <TrendingDown className="w-4 h-4 text-red-400" />;
-    return <Minus className="w-4 h-4 text-muted-foreground" />;
+    if (trend === 'up') return <TradeUpIcon className="w-4 h-4 text-green-400" />;
+    if (trend === 'down') return <TradeDownIcon className="w-4 h-4 text-red-400" />;
+    return <MinusSignIcon className="w-4 h-4 text-muted-foreground" />;
   };
 
   return (
@@ -145,7 +155,7 @@ export function AISearchPage() {
             className="h-10 w-10 rounded-xl glass-card flex items-center justify-center"
             aria-label="Go back"
           >
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft01Icon className="w-5 h-5" />
           </motion.button>
           <div>
             <h1 className="text-lg font-semibold tracking-tight">Assistant</h1>
@@ -244,7 +254,7 @@ export function AISearchPage() {
                           className="flex items-center gap-3 p-3 rounded-xl bg-green-500/10 border border-green-500/20"
                         >
                           <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                            <Check className="w-4 h-4 text-green-400" />
+                            <Tick01Icon className="w-4 h-4 text-green-400" />
                           </div>
                           <div>
                             <p className="text-sm font-medium text-green-400">Saved</p>
@@ -308,7 +318,7 @@ export function AISearchPage() {
                             >
                               <div className="flex items-start gap-3">
                                 <div className="w-10 h-10 rounded-lg bg-secondary/50 flex items-center justify-center shrink-0 group-hover:bg-secondary/80 transition-colors">
-                                  <Calendar className="w-5 h-5 text-muted-foreground" />
+                                  <Calendar01Icon className="w-5 h-5 text-muted-foreground" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center justify-between gap-2">
@@ -338,7 +348,7 @@ export function AISearchPage() {
                           transition={{ delay: 0.3 }}
                           className="flex items-start gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50"
                         >
-                          <Lightbulb className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                          <BulbIcon className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
                           <p className="text-xs text-muted-foreground leading-relaxed">
                             {message.response.suggestion}
                           </p>
@@ -365,7 +375,7 @@ export function AISearchPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-secondary/50 flex items-center justify-center">
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      <Loading01Icon className="w-4 h-4 animate-spin text-muted-foreground" />
                     </div>
                     <div className="space-y-1.5 flex-1">
                       <div className="h-3 w-3/4 bg-secondary/50 rounded animate-pulse" />
@@ -407,9 +417,9 @@ export function AISearchPage() {
               )}
             >
               {isLoading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loading01Icon className="w-5 h-5 animate-spin" />
               ) : (
-                <Send className="w-5 h-5" />
+                <SentIcon className="w-5 h-5" />
               )}
             </motion.button>
           </div>
@@ -418,3 +428,4 @@ export function AISearchPage() {
     </div>
   );
 }
+

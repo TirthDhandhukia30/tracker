@@ -3,38 +3,18 @@ import { cn } from '@/lib/utils';
 import { haptics } from '@/lib/haptics';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { motion } from 'framer-motion';
-import { Sparkles } from 'lucide-react';
-
-// SVG nav icons
-const HomeIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M5 12l-2 0l9 -9l9 9l-2 0" />
-    <path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7" />
-    <path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6" />
-  </svg>
-);
-
-const CalendarIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12" />
-    <path d="M16 3v4" />
-    <path d="M8 3v4" />
-    <path d="M4 11h16" />
-    <path d="M11 15h1" />
-    <path d="M12 15v3" />
-  </svg>
-);
+import { Home01Icon, Calendar01Icon, SparklesIcon } from 'hugeicons-react';
 
 type NavItemType = 'home' | 'calendar' | 'ai';
 
 const NavIcon = ({ type, className }: { type: NavItemType; className?: string }) => {
   switch (type) {
     case 'home':
-      return <HomeIcon className={className} />;
+      return <Home01Icon className={className} size={24} />;
     case 'calendar':
-      return <CalendarIcon className={className} />;
+      return <Calendar01Icon className={className} size={24} />;
     case 'ai':
-      return <Sparkles className={cn("w-[22px] h-[22px]", className)} />;
+      return <SparklesIcon className={className} size={24} />;
   }
 };
 
