@@ -36,20 +36,17 @@ async function fetchAllEntries(): Promise<DailyEntry[]> {
 
 function summarizeEntries(entries: DailyEntry[]): string {
   const summary = entries.map(entry => {
-    const parts: string[] = [`Date: ${entry.date}`];
-
-    if (entry.running) parts.push(`Running: Yes${entry.running_note ? ` (${entry.running_note})` : ''}`);
-    if (entry.work_done) parts.push(`Work: Yes${entry.work_note ? ` (${entry.work_note})` : ''}`);
-    if (entry.gym_type && entry.gym_type !== 'rest') parts.push(`Gym: ${entry.gym_type}`);
-    if (entry.current_weight) parts.push(`Weight: ${entry.current_weight}kg`);
-    if (entry.daily_steps) parts.push(`Steps: ${entry.daily_steps}`);
-    if (entry.note) parts.push(`Note: ${entry.note}`);
-    if (entry.is_highlighted) parts.push(`Starred`);
-    if (entry.streak_check) parts.push(`Streak: Yes`);
-
+    const parts: string[] = [`${entry.date}`];
+    if (entry.running) parts.push(`run${entry.running_note ? `: ${entry.running_note}` : ''}`);
+    if (entry.work_done) parts.push(`work${entry.work_note ? `: ${entry.work_note}` : ''}`);
+    if (entry.gym_type && entry.gym_type !== 'rest') parts.push(`gym: ${entry.gym_type}`);
+    if (entry.current_weight) parts.push(`${entry.current_weight}kg`);
+    if (entry.daily_steps) parts.push(`${entry.daily_steps} steps`);
+    if (entry.note) parts.push(`note: ${entry.note}`);
+    if (entry.is_highlighted) parts.push(`starred`);
+    if (entry.streak_check) parts.push(`streak`);
     return parts.join(' | ');
   }).join('\n');
-
   return summary;
 }
 
@@ -58,23 +55,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { query } = req.body;
-
-  if (!query) {
-    return res.status(400).json({ error: 'Query is required' });
-  }
-
-  if (!GROQ_API_KEY) {
-    return res.status(500).json({ error: 'Service unavailable' });
-  }
+  if (!query) return res.status(400).json({ error: 'Query required' });
+  if (!GROQ_API_KEY) return res.status(500).json({ error: 'Unavailable' });
 
   try {
     const entries = await fetchAllEntries();
@@ -91,75 +77,77 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           {
             role: 'system',
-            content: `You analyze personal journal data. Respond with structured JSON only.
+            content: `You analyze journal data. Return JSON only.
 
 VOICE
-Minimal. Calm. Precise.
-Simple words. Short sentences.
-Start with the insight. Skip the preamble.
-No filler. No fluff. No teaching unless asked.
-Warm but quiet. Confident but never loud.
+Start where attention should land.
+No warmup. No recap. No justification.
+Short sentences. Active voice. Concrete nouns.
+Calm. Neutral. Assured. Human.
+Never enthusiastic. Never casual.
 
-RESPONSE FORMAT
+STRUCTURE
+One idea per block.
+First line anchors. Subsequent lines refine.
+Max 4 lines per block.
+Whitespace is intentional.
+
+FORBIDDEN
+"Here's what"
+"Let's"
+"In simple terms"
+"You might"
+"This means"
+Any emoji
+
+FORMAT
 {
-  "summary": "The key insight in one clear sentence",
-  "details": "Brief context if needed, otherwise null",
-  "metrics": [
-    {"label": "Steps", "value": "12,345", "unit": "today", "trend": "up"}
-  ],
-  "highlights": [
-    {"date": "2024-01-15", "title": "Best day", "description": "15,000 steps"}
-  ],
-  "suggestion": "One actionable thought, or null"
+  "summary": "Single clear sentence. The insight.",
+  "metrics": [{"label": "Steps", "value": "12,345", "trend": "up"}],
+  "highlights": [{"date": "2024-01-15", "title": "Best day", "description": "15k steps"}],
+  "suggestion": "One actionable line or omit"
 }
 
-GUIDELINES
-- Use specific numbers. Be precise.
-- Trend: "up" if good, "down" if declining, "neutral" otherwise
-- highlights: only include when referencing specific dates
-- metrics: use for key statistics worth showing prominently
-- Keep descriptions under 10 words
-- Omit empty arrays and null fields from response
+RULES
+- summary: Required. One sentence. The answer.
+- metrics: Only for statistics worth showing large. Trend: up/down/neutral.
+- highlights: Only for specific dates. Title under 4 words. Description under 8.
+- suggestion: Only if genuinely useful. Otherwise omit.
+- Omit empty arrays.
+- Numbers are precise.
+- Dates as YYYY-MM-DD.
 
 Today: ${new Date().toISOString().split('T')[0]}
 
 DATA
 ${dataSummary}`,
           },
-          {
-            role: 'user',
-            content: query,
-          },
+          { role: 'user', content: query },
         ],
-        temperature: 0.2,
-        max_tokens: 800,
+        temperature: 0.1,
+        max_tokens: 600,
       }),
     });
 
     if (!groqResponse.ok) {
-      console.error('API error:', await groqResponse.text());
-      return res.status(500).json({ error: 'Service unavailable' });
+      console.error('Error:', await groqResponse.text());
+      return res.status(500).json({ error: 'Unavailable' });
     }
 
     const data = await groqResponse.json();
-    const aiResponse = data.choices?.[0]?.message?.content || '';
+    const content = data.choices?.[0]?.message?.content || '';
 
-    let parsedResponse;
+    let parsed;
     try {
-      const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) ||
-        aiResponse.match(/```\s*([\s\S]*?)\s*```/) ||
-        aiResponse.match(/\{[\s\S]*\}/);
-      const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : aiResponse;
-      parsedResponse = JSON.parse(jsonStr);
+      const match = content.match(/\{[\s\S]*\}/);
+      parsed = JSON.parse(match ? match[0] : content);
     } catch {
-      parsedResponse = {
-        summary: aiResponse.trim(),
-      };
+      parsed = { summary: content.trim() };
     }
 
-    return res.status(200).json({ response: parsedResponse });
+    return res.status(200).json({ response: parsed });
   } catch (error) {
     console.error('Error:', error);
-    return res.status(500).json({ error: 'Service unavailable' });
+    return res.status(500).json({ error: 'Unavailable' });
   }
 }
