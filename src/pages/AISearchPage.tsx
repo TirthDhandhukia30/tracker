@@ -1,43 +1,55 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAISearch } from '@/hooks/useAISearch';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { haptics } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
-import { Send, Sparkles, ArrowLeft, Loader2 } from 'lucide-react';
+import { Send, Loader2, TrendingUp, TrendingDown, Minus, Calendar, Lightbulb, ArrowLeft } from 'lucide-react';
+
+interface Metric {
+  label: string;
+  value: string;
+  unit?: string;
+  trend?: 'up' | 'down' | 'neutral';
+}
+
+interface Highlight {
+  date: string;
+  title: string;
+  description: string;
+}
+
+interface AIResponse {
+  summary: string;
+  details?: string | null;
+  metrics?: Metric[];
+  highlights?: Highlight[];
+  suggestion?: string | null;
+}
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  response?: AIResponse;
   timestamp: Date;
 }
 
 const EXAMPLE_QUERIES = [
-  "What was my best day this month?",
-  "When did I last go to the gym?",
-  "How many steps did I walk last week?",
-  "Show me days where I completed all habits",
-  "What's my weight trend?",
-  "When did I feel sick or had a bad day?",
+  "What was my best day this week?",
+  "How many steps did I walk yesterday?",
+  "Show my gym activity this month",
+  "When did I complete all habits?",
 ];
 
 export function AISearchPage() {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
-  const { query: askAI, isLoading } = useAISearch();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const fadeInUp = prefersReducedMotion
-    ? { initial: {}, animate: {} }
-    : {
-      initial: { opacity: 0, y: 10 },
-      animate: { opacity: 1, y: 0 },
-    };
 
   const springTransition = prefersReducedMotion
     ? { duration: 0 }
@@ -49,11 +61,7 @@ export function AISearchPage() {
 
   const handleBack = () => {
     haptics.light();
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate('/');
-    }
+    navigate(-1);
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -63,7 +71,6 @@ export function AISearchPage() {
 
     haptics.light();
 
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
@@ -72,21 +79,27 @@ export function AISearchPage() {
     };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
+    setIsLoading(true);
 
     try {
-      const response = await askAI(trimmedInput);
+      const response = await fetch('/api/ai-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: trimmedInput }),
+      });
 
-      // Add AI response
+      const data = await response.json();
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response,
+        content: data.response?.summary || 'No response',
+        response: data.response,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, aiMessage]);
       haptics.success();
-    } catch (error) {
-      // Add error message
+    } catch {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -95,6 +108,8 @@ export function AISearchPage() {
       };
       setMessages(prev => [...prev, errorMessage]);
       haptics.error();
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -104,131 +119,243 @@ export function AISearchPage() {
     inputRef.current?.focus();
   };
 
+  const handleDateClick = (dateStr: string) => {
+    haptics.light();
+    navigate(`/date/${dateStr}`);
+  };
+
+  const TrendIcon = ({ trend }: { trend?: string }) => {
+    if (trend === 'up') return <TrendingUp className="w-4 h-4 text-green-400" />;
+    if (trend === 'down') return <TrendingDown className="w-4 h-4 text-red-400" />;
+    return <Minus className="w-4 h-4 text-muted-foreground" />;
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* Header */}
+      {/* Header - Apple style minimal */}
       <header className="sticky top-0 z-50 glass-nav px-4 py-3">
         <div className="flex items-center gap-3 max-w-lg mx-auto">
           <motion.button
             whileTap={prefersReducedMotion ? {} : { scale: 0.95 }}
             onClick={handleBack}
-            className="h-10 w-10 rounded-xl glass-card flex items-center justify-center hover:bg-secondary/50 transition-colors"
+            className="h-10 w-10 rounded-xl glass-card flex items-center justify-center"
             aria-label="Go back"
           >
             <ArrowLeft className="w-5 h-5" />
           </motion.button>
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <h1 className="text-sm font-semibold">AI Search</h1>
-              <p className="text-[10px] text-muted-foreground">Ask anything about your journal</p>
-            </div>
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight">Intelligence</h1>
+            <p className="text-[10px] text-muted-foreground">Ask about your journal</p>
           </div>
         </div>
       </header>
 
       {/* Messages */}
       <main className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-lg mx-auto space-y-4">
+        <div className="max-w-lg mx-auto space-y-6">
           {messages.length === 0 ? (
             <motion.div
-              {...fadeInUp}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={springTransition}
-              className="text-center py-12"
+              className="text-center py-16"
             >
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 flex items-center justify-center">
-                <Sparkles className="w-8 h-8 text-violet-400" />
+              {/* Apple Intelligence-style rainbow icon */}
+              <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-background to-secondary/50 border border-border/50 flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 opacity-30">
+                  <div className="absolute inset-0 bg-gradient-to-r from-pink-500 via-purple-500 via-blue-500 via-cyan-500 to-green-500 blur-xl" />
+                </div>
+                <svg className="w-10 h-10 relative z-10" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="10" stroke="url(#rainbow)" strokeWidth="1.5" />
+                  <path d="M12 6v6l4 2" stroke="url(#rainbow)" strokeWidth="1.5" strokeLinecap="round" />
+                  <defs>
+                    <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#ec4899" />
+                      <stop offset="25%" stopColor="#8b5cf6" />
+                      <stop offset="50%" stopColor="#3b82f6" />
+                      <stop offset="75%" stopColor="#06b6d4" />
+                      <stop offset="100%" stopColor="#22c55e" />
+                    </linearGradient>
+                  </defs>
+                </svg>
               </div>
-              <h2 className="text-lg font-semibold mb-2">Ask me anything</h2>
-              <p className="text-sm text-muted-foreground mb-6">
-                I can help you search through your journal entries
+              <h2 className="text-xl font-semibold mb-2">Ask anything</h2>
+              <p className="text-sm text-muted-foreground mb-8 max-w-xs mx-auto">
+                Get insights about your habits, trends, and progress
               </p>
 
-              {/* Example queries */}
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Try asking:</p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  {EXAMPLE_QUERIES.slice(0, 4).map((example, i) => (
-                    <motion.button
-                      key={i}
-                      initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                      onClick={() => handleExampleClick(example)}
-                      className="text-xs px-3 py-2 rounded-full glass-card hover:bg-secondary/50 transition-colors text-left"
-                    >
-                      {example}
-                    </motion.button>
-                  ))}
-                </div>
+              {/* Example queries - pill style */}
+              <div className="flex flex-wrap gap-2 justify-center">
+                {EXAMPLE_QUERIES.map((example, i) => (
+                  <motion.button
+                    key={i}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.1 }}
+                    onClick={() => handleExampleClick(example)}
+                    className="text-xs px-4 py-2 rounded-full bg-secondary/50 hover:bg-secondary/80 transition-colors border border-border/50"
+                  >
+                    {example}
+                  </motion.button>
+                ))}
               </div>
             </motion.div>
           ) : (
-            <>
-              <AnimatePresence mode="popLayout">
-                {messages.map((message) => (
-                  <motion.div
-                    key={message.id}
-                    initial={prefersReducedMotion ? {} : { opacity: 0, y: 20, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={springTransition}
-                    className={cn(
-                      "flex",
-                      message.role === 'user' ? 'justify-end' : 'justify-start'
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        "max-w-[85%] rounded-2xl px-4 py-3",
-                        message.role === 'user'
-                          ? "bg-primary text-primary-foreground rounded-br-md"
-                          : "glass-card rounded-bl-md"
-                      )}
-                    >
-                      {message.role === 'assistant' && (
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="h-5 w-5 rounded-md bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                            <Sparkles className="w-3 h-3 text-white" />
-                          </div>
-                          <span className="text-[10px] font-medium text-muted-foreground">AI</span>
+            <AnimatePresence mode="popLayout">
+              {messages.map((message) => (
+                <motion.div
+                  key={message.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={springTransition}
+                  className="space-y-3"
+                >
+                  {/* User message - minimal bubble */}
+                  {message.role === 'user' && (
+                    <div className="flex justify-end">
+                      <div className="max-w-[85%] rounded-2xl rounded-br-md px-4 py-2.5 bg-primary text-primary-foreground">
+                        <p className="text-sm">{message.content}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* AI Response - Card based */}
+                  {message.role === 'assistant' && message.response && (
+                    <div className="space-y-3">
+                      {/* Summary */}
+                      <div className="glass-card rounded-2xl p-4">
+                        <p className="text-sm leading-relaxed">{message.response.summary}</p>
+                        {message.response.details && (
+                          <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                            {message.response.details}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Metrics Grid */}
+                      {message.response.metrics && message.response.metrics.length > 0 && (
+                        <div className={cn(
+                          "grid gap-2",
+                          message.response.metrics.length === 1 ? "grid-cols-1" :
+                            message.response.metrics.length === 2 ? "grid-cols-2" :
+                              "grid-cols-2"
+                        )}>
+                          {message.response.metrics.map((metric, i) => (
+                            <motion.div
+                              key={i}
+                              initial={{ opacity: 0, scale: 0.95 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: i * 0.1 }}
+                              className="glass-card rounded-xl p-4"
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                                  {metric.label}
+                                </span>
+                                <TrendIcon trend={metric.trend} />
+                              </div>
+                              <div className="flex items-baseline gap-1">
+                                <span className="text-2xl font-bold tabular-nums">{metric.value}</span>
+                                {metric.unit && (
+                                  <span className="text-xs text-muted-foreground">{metric.unit}</span>
+                                )}
+                              </div>
+                            </motion.div>
+                          ))}
                         </div>
                       )}
-                      <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
 
+                      {/* Highlights - Tappable cards */}
+                      {message.response.highlights && message.response.highlights.length > 0 && (
+                        <div className="space-y-2">
+                          {message.response.highlights.map((highlight, i) => (
+                            <motion.button
+                              key={i}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: i * 0.1 }}
+                              onClick={() => handleDateClick(highlight.date)}
+                              className="w-full glass-card rounded-xl p-4 text-left hover:bg-secondary/30 transition-colors group"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-secondary/50 flex items-center justify-center shrink-0 group-hover:bg-secondary/80 transition-colors">
+                                  <Calendar className="w-5 h-5 text-muted-foreground" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-sm font-medium truncate">{highlight.title}</p>
+                                    <span className="text-[10px] text-muted-foreground shrink-0">
+                                      {new Date(highlight.date).toLocaleDateString('en-US', {
+                                        month: 'short',
+                                        day: 'numeric'
+                                      })}
+                                    </span>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                                    {highlight.description}
+                                  </p>
+                                </div>
+                              </div>
+                            </motion.button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Suggestion */}
+                      {message.response.suggestion && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.3 }}
+                          className="flex items-start gap-3 p-4 rounded-xl bg-secondary/30 border border-border/50"
+                        >
+                          <Lightbulb className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {message.response.suggestion}
+                          </p>
+                        </motion.div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Fallback text response */}
+                  {message.role === 'assistant' && !message.response && (
+                    <div className="glass-card rounded-2xl p-4">
+                      <p className="text-sm">{message.content}</p>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+
+              {/* Loading state */}
               {isLoading && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-start"
+                  className="glass-card rounded-2xl p-4"
                 >
-                  <div className="glass-card rounded-2xl rounded-bl-md px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <div className="h-5 w-5 rounded-md bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center">
-                        <Loader2 className="w-3 h-3 text-white animate-spin" />
-                      </div>
-                      <span className="text-xs text-muted-foreground">Thinking...</span>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-secondary/50 flex items-center justify-center">
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-3 w-3/4 bg-secondary/50 rounded animate-pulse" />
+                      <div className="h-3 w-1/2 bg-secondary/50 rounded animate-pulse" />
                     </div>
                   </div>
                 </motion.div>
               )}
-            </>
+            </AnimatePresence>
           )}
           <div ref={messagesEndRef} />
         </div>
       </main>
 
-      {/* Input */}
+      {/* Input - Apple style minimal */}
       <div className="sticky bottom-0 glass-nav border-t px-4 py-3 pb-safe">
         <form onSubmit={handleSubmit} className="max-w-lg mx-auto">
           <div className="flex items-center gap-2">
-            <div className="flex-1 relative">
+            <div className="flex-1">
               <input
                 ref={inputRef}
                 type="text"
@@ -236,7 +363,7 @@ export function AISearchPage() {
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask about your journal..."
                 disabled={isLoading}
-                className="w-full h-12 px-4 pr-12 rounded-2xl glass-card border-0 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50"
+                className="w-full h-12 px-4 rounded-2xl bg-secondary/50 border border-border/50 text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 disabled:opacity-50 transition-all"
               />
             </div>
             <motion.button
@@ -246,8 +373,8 @@ export function AISearchPage() {
               className={cn(
                 "h-12 w-12 rounded-2xl flex items-center justify-center transition-all",
                 input.trim() && !isLoading
-                  ? "bg-gradient-to-br from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/25"
-                  : "glass-card text-muted-foreground"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary/50 text-muted-foreground"
               )}
             >
               {isLoading ? (

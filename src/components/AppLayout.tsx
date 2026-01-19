@@ -68,7 +68,6 @@ export function AppLayout() {
         <div className="flex items-center justify-around h-16 max-w-md mx-auto px-2">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
-            const isAI = item.type === 'ai';
             return (
               <button
                 key={item.path}
@@ -77,18 +76,13 @@ export function AppLayout() {
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   "relative flex flex-col items-center justify-center w-full h-full space-y-1",
-                  isActive
-                    ? isAI ? "text-violet-400" : "text-primary"
-                    : "text-muted-foreground hover:text-foreground"
+                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {isActive && (
                   <motion.div
                     layoutId="nav-indicator"
-                    className={cn(
-                      "absolute top-0 w-8 h-1 rounded-full",
-                      isAI ? "bg-violet-400" : "bg-primary"
-                    )}
+                    className="absolute top-0 w-8 h-1 rounded-full bg-primary"
                     transition={prefersReducedMotion
                       ? { duration: 0 }
                       : { type: "spring", stiffness: 500, damping: 30 }

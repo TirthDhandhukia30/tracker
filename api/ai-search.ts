@@ -35,7 +35,6 @@ async function fetchAllEntries(): Promise<DailyEntry[]> {
 }
 
 function summarizeEntries(entries: DailyEntry[]): string {
-  // Create a condensed summary for the AI context
   const summary = entries.map(entry => {
     const parts: string[] = [`Date: ${entry.date}`];
 
@@ -55,7 +54,6 @@ function summarizeEntries(entries: DailyEntry[]): string {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -79,11 +77,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Fetch all entries from Supabase
     const entries = await fetchAllEntries();
     const dataSummary = summarizeEntries(entries);
 
-    // Call Groq API
     const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -95,19 +91,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         messages: [
           {
             role: 'system',
-            content: `You are a helpful AI assistant that helps analyze a personal daily tracking journal. You have access to the user's daily entries which include:
-- Running/exercise activities and notes
-- Work accomplishments and notes
-- Gym workouts (push, pull, legs, cardio, or rest)
-- Daily weight measurements
-- Step counts
-- Personal notes and reflections
-- Highlighted/starred special days
-- Streak check-ins
+            content: `You are an intelligent personal journal analyst. Your role is to analyze the user's daily tracking data and provide clear, insightful responses.
 
-Analyze the data and answer the user's questions helpfully. Be concise but informative. If asked about best/worst days, look at the metrics. If asked about specific activities, search the notes. Today's date is ${new Date().toISOString().split('T')[0]}.
+RESPONSE FORMAT:
+Always respond with valid JSON in this structure:
+{
+  "summary": "A brief 1-2 sentence summary of the insight",
+  "details": "Optional longer explanation if needed",
+  "metrics": [
+    {"label": "Metric Name", "value": "12,345", "unit": "steps", "trend": "up|down|neutral"}
+  ],
+  "highlights": [
+    {"date": "2024-01-15", "title": "Best Day", "description": "Walked 15,000 steps"}
+  ],
+  "suggestion": "Optional actionable suggestion"
+}
 
-Here is the user's journal data:
+ANALYSIS GUIDELINES:
+- Be analytical and data-driven
+- Use specific numbers and dates
+- Compare to averages when relevant
+- Identify patterns and trends
+- Keep summaries concise but insightful
+- For step queries, always include the exact step count
+- For date queries, include the specific dates found
+- For trend questions, calculate actual percentages
+
+DATA CONTEXT:
+Today's date: ${new Date().toISOString().split('T')[0]}
+
+USER'S JOURNAL DATA:
 ${dataSummary}`,
           },
           {
@@ -115,7 +128,7 @@ ${dataSummary}`,
             content: query,
           },
         ],
-        temperature: 0.7,
+        temperature: 0.3,
         max_tokens: 1024,
       }),
     });
@@ -127,9 +140,28 @@ ${dataSummary}`,
     }
 
     const data = await groqResponse.json();
-    const aiResponse = data.choices?.[0]?.message?.content || 'No response generated';
+    const aiResponse = data.choices?.[0]?.message?.content || '';
 
-    return res.status(200).json({ response: aiResponse });
+    // Try to parse as JSON, fallback to text response
+    let parsedResponse;
+    try {
+      // Extract JSON from response if wrapped in code blocks
+      const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) ||
+        aiResponse.match(/```\s*([\s\S]*?)\s*```/);
+      const jsonStr = jsonMatch ? jsonMatch[1] : aiResponse;
+      parsedResponse = JSON.parse(jsonStr);
+    } catch {
+      // Fallback to simple text response
+      parsedResponse = {
+        summary: aiResponse,
+        details: null,
+        metrics: [],
+        highlights: [],
+        suggestion: null
+      };
+    }
+
+    return res.status(200).json({ response: parsedResponse });
   } catch (error) {
     console.error('Error:', error);
     return res.status(500).json({ error: 'Internal server error' });
