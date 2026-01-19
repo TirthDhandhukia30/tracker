@@ -256,13 +256,28 @@ async function upsertEntry(date: string, updates: Partial<DailyEntry>): Promise<
   const existing = await getResponse.json();
   const existingEntry = existing?.[0] || {};
 
-  // Sanitize and merge updates
+  // Helper to append notes instead of replacing
+  const appendNote = (existingNote: string | null | undefined, newNote: string | undefined, maxLen: number): string | null => {
+    if (typeof newNote !== 'string' || !newNote.trim()) {
+      return existingNote ?? null;
+    }
+    const trimmedNew = newNote.trim().slice(0, maxLen);
+    if (!existingNote) {
+      return trimmedNew;
+    }
+    // Append with separator, respecting max length
+    const separator = ' • ';
+    const combined = `${existingNote}${separator}${trimmedNew}`;
+    return combined.slice(0, maxLen);
+  };
+
+  // Sanitize and merge updates (append notes, don't replace)
   const payload = {
     date,
     running: Boolean(updates.running ?? existingEntry.running ?? false),
-    running_note: typeof updates.running_note === 'string' ? updates.running_note.slice(0, 500) : existingEntry.running_note ?? null,
+    running_note: appendNote(existingEntry.running_note, updates.running_note, 500),
     work_done: Boolean(updates.work_done ?? existingEntry.work_done ?? false),
-    work_note: typeof updates.work_note === 'string' ? updates.work_note.slice(0, 500) : existingEntry.work_note ?? null,
+    work_note: appendNote(existingEntry.work_note, updates.work_note, 500),
     streak_check: Boolean(updates.streak_check ?? existingEntry.streak_check ?? false),
     gym_type: ['rest', 'push', 'pull', 'legs', 'cardio'].includes(updates.gym_type as string)
       ? updates.gym_type
@@ -274,7 +289,7 @@ async function upsertEntry(date: string, updates: Partial<DailyEntry>): Promise<
     daily_steps: typeof updates.daily_steps === 'number' && updates.daily_steps >= 0 && updates.daily_steps < 200000
       ? Math.round(updates.daily_steps)
       : existingEntry.daily_steps ?? null,
-    note: typeof updates.note === 'string' ? updates.note.slice(0, 1000) : existingEntry.note ?? null,
+    note: appendNote(existingEntry.note, updates.note, 1000),
     is_highlighted: Boolean(updates.is_highlighted ?? existingEntry.is_highlighted ?? false),
   };
 
