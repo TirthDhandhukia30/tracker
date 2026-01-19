@@ -39,7 +39,17 @@ function summarizeEntries(entries: DailyEntry[]): string {
     const parts: string[] = [`${entry.date}`];
     if (entry.running) parts.push(`run${entry.running_note ? `: ${entry.running_note}` : ''}`);
     if (entry.work_done) parts.push(`work${entry.work_note ? `: ${entry.work_note}` : ''}`);
-    if (entry.gym_type && entry.gym_type !== 'rest') parts.push(`gym: ${entry.gym_type}`);
+    if (entry.gym_type && entry.gym_type !== 'rest') {
+      parts.push(`gym: ${entry.gym_type}`);
+      // Include exercise details
+      if (entry.exercises && entry.exercises.length > 0) {
+        const exerciseList = entry.exercises.map((ex: any) => {
+          const sets = ex.sets?.map((s: any) => `${s.weight}kg×${s.reps}`).join(', ') || '';
+          return `${ex.name}${sets ? ` (${sets})` : ''}`;
+        }).join('; ');
+        parts.push(`exercises: ${exerciseList}`);
+      }
+    }
     if (entry.current_weight) parts.push(`${entry.current_weight}kg`);
     if (entry.daily_steps) parts.push(`${entry.daily_steps} steps`);
     if (entry.note) parts.push(`note: ${entry.note}`);
