@@ -132,7 +132,7 @@ export function HomePage() {
             <p className="text-xs text-muted-foreground/50 mt-1">— {quote.author}</p>
           </motion.aside>
 
-          {/* Today Card - Compact */}
+          {/* Today Card - Celebratory when complete */}
           <motion.button
             {...fadeInUp}
             transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.05 }}
@@ -142,67 +142,126 @@ export function HomePage() {
               ? "Today's entry complete. Tap to view or edit."
               : "Log today's habits. Tap to open."}
             className={cn(
-              "w-full group relative overflow-hidden rounded-2xl p-4 text-left transition-all",
+              "w-full group relative overflow-hidden rounded-2xl text-left transition-all",
               isTodayComplete
-                ? "bg-gradient-to-r from-green-500 to-emerald-500"
-                : "glass-card hover:shadow-glass-lg"
+                ? "bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 p-6 shadow-lg shadow-green-500/25"
+                : "glass-card hover:shadow-glass-lg p-4"
             )}
           >
-            <div className="flex items-center gap-4">
-              {/* Left: Date + Status */}
+            {/* Celebration particles for completed state */}
+            {isTodayComplete && (
+              <>
+                {/* Animated shimmer */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                  animate={prefersReducedMotion ? {} : {
+                    x: ['-100%', '200%'],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 2.5,
+                    ease: 'easeInOut',
+                  }}
+                />
+                {/* Confetti dots */}
+                {[...Array(8)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute w-1.5 h-1.5 rounded-full bg-white/40"
+                    style={{
+                      left: `${15 + i * 10}%`,
+                      top: `${20 + (i % 3) * 25}%`,
+                    }}
+                    animate={prefersReducedMotion ? {} : {
+                      y: [0, -8, 0],
+                      opacity: [0.4, 0.8, 0.4],
+                    }}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 2 + (i % 3) * 0.5,
+                      delay: i * 0.2,
+                      ease: 'easeInOut',
+                    }}
+                  />
+                ))}
+              </>
+            )}
+
+            <div className="relative flex items-center gap-4">
+              {/* Left: Status */}
               <div className="flex-1 min-w-0">
                 <p className={cn(
-                  "text-sm font-semibold",
-                  isTodayComplete ? "text-white" : "text-foreground"
+                  "font-semibold",
+                  isTodayComplete ? "text-2xl text-white" : "text-sm text-foreground"
                 )}>
-                  {format(today, 'EEEE')}
+                  {isTodayComplete ? "🎉 All Done!" : format(today, 'EEEE')}
                 </p>
                 <p className={cn(
-                  "text-xs",
-                  isTodayComplete ? "text-white/70" : "text-muted-foreground"
+                  isTodayComplete ? "text-sm text-white/80 mt-1" : "text-xs text-muted-foreground"
                 )}>
-                  {isTodayComplete ? "All done" : `${todayCompletedCount} of 3`}
+                  {isTodayComplete ? "You crushed it today" : `${todayCompletedCount} of 3 habits`}
                 </p>
               </div>
 
-              {/* Center: Three habit dots */}
+              {/* Center: Three habit indicators */}
               <div className="flex items-center gap-2">
                 {[
-                  { done: todayEntry?.running || false },
-                  { done: todayEntry?.work_done || false },
-                  { done: (todayEntry?.gym_type || 'rest') !== 'rest' },
+                  { done: todayEntry?.running || false, icon: '🏃' },
+                  { done: todayEntry?.work_done || false, icon: '💼' },
+                  { done: (todayEntry?.gym_type || 'rest') !== 'rest', icon: '💪' },
                 ].map((habit, i) => (
-                  <div
+                  <motion.div
                     key={i}
                     className={cn(
-                      "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
+                      "rounded-xl flex items-center justify-center transition-all",
+                      isTodayComplete ? "w-10 h-10" : "w-8 h-8",
                       habit.done
                         ? (isTodayComplete ? "bg-white/25" : "bg-primary")
                         : (isTodayComplete ? "bg-white/10" : "bg-secondary/60")
                     )}
+                    animate={isTodayComplete && habit.done && !prefersReducedMotion ? {
+                      scale: [1, 1.1, 1],
+                    } : {}}
+                    transition={{
+                      repeat: Infinity,
+                      duration: 2,
+                      delay: i * 0.3,
+                    }}
                   >
-                    {habit.done && (
-                      <svg className={cn("w-4 h-4", isTodayComplete ? "text-white" : "text-primary-foreground")} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M5 12l5 5l10 -10" />
-                      </svg>
-                    )}
-                  </div>
+                    {habit.done ? (
+                      isTodayComplete ? (
+                        <span className="text-lg">{habit.icon}</span>
+                      ) : (
+                        <svg className="w-4 h-4 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M5 12l5 5l10 -10" />
+                        </svg>
+                      )
+                    ) : null}
+                  </motion.div>
                 ))}
               </div>
 
               {/* Right: Arrow */}
-              <svg
+              <motion.svg
                 className={cn(
-                  "w-5 h-5 transition-transform group-hover:translate-x-0.5",
-                  isTodayComplete ? "text-white/60" : "text-muted-foreground"
+                  "w-5 h-5",
+                  isTodayComplete ? "text-white/70" : "text-muted-foreground"
                 )}
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
+                animate={!prefersReducedMotion ? {
+                  x: [0, 3, 0],
+                } : {}}
+                transition={{
+                  repeat: Infinity,
+                  duration: 1.5,
+                  ease: 'easeInOut',
+                }}
               >
                 <path d="M9 6l6 6l-6 6" />
-              </svg>
+              </motion.svg>
             </div>
           </motion.button>
 
@@ -352,13 +411,34 @@ export function HomePage() {
             </motion.section>
           )}
 
-          {/* Steps - Compact Widget */}
+          {/* Steps - Celebratory when goal met */}
           <motion.button
             {...fadeInUp}
             transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.15 }}
             onClick={() => handleNavigate('/steps-history')}
-            className="w-full glass-card rounded-2xl p-5 text-left transition-all hover:shadow-glass-lg active:scale-[0.99]"
             aria-label="View steps history"
+            className={cn(
+              "w-full rounded-2xl p-5 text-left transition-all active:scale-[0.99] relative overflow-hidden",
+              (() => {
+                const WEEKLY_GOAL = 70000;
+                const dayOfWeek = today.getDay();
+                const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                const monday = new Date(today);
+                monday.setDate(today.getDate() + mondayOffset);
+                const weekDays = Array.from({ length: 7 }, (_, i) => {
+                  const date = new Date(monday);
+                  date.setDate(monday.getDate() + i);
+                  return format(date, 'yyyy-MM-dd');
+                });
+                const weeklySteps = weekDays.reduce((sum, dateStr) => {
+                  const dayData = stepsData.find(d => d.date === dateStr);
+                  return sum + (dayData?.steps || 0);
+                }, 0);
+                return weeklySteps >= WEEKLY_GOAL;
+              })()
+                ? "bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 shadow-lg shadow-green-500/20"
+                : "glass-card hover:shadow-glass-lg"
+            )}
           >
             {(() => {
               const WEEKLY_GOAL = 70000;
@@ -381,23 +461,59 @@ export function HomePage() {
               const isGoalMet = weeklySteps >= WEEKLY_GOAL;
 
               return (
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">This Week</p>
-                    <p className="text-3xl font-semibold tabular-nums tracking-tight">
-                      {(weeklySteps / 1000).toFixed(0)}
-                      <span className="text-lg font-normal text-muted-foreground ml-0.5">K</span>
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <span className={cn(
-                      "text-xs font-medium",
-                      isGoalMet ? "text-green-600 dark:text-green-400" : "text-muted-foreground"
+                <>
+                  {/* Celebration shimmer when goal met */}
+                  {isGoalMet && (
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                      animate={prefersReducedMotion ? {} : {
+                        x: ['-100%', '200%'],
+                      }}
+                      transition={{
+                        repeat: Infinity,
+                        duration: 2.5,
+                        ease: 'easeInOut',
+                      }}
+                    />
+                  )}
+                  <div className="relative flex items-center justify-between">
+                    <div>
+                      <p className={cn(
+                        "text-xs font-medium uppercase tracking-wider mb-1",
+                        isGoalMet ? "text-white/70" : "text-muted-foreground"
+                      )}>This Week</p>
+                      <p className={cn(
+                        "text-3xl font-semibold tabular-nums tracking-tight",
+                        isGoalMet ? "text-white" : "text-foreground"
+                      )}>
+                        {(weeklySteps / 1000).toFixed(0)}
+                        <span className={cn(
+                          "text-lg font-normal ml-0.5",
+                          isGoalMet ? "text-white/70" : "text-muted-foreground"
+                        )}>K</span>
+                        <span className={cn(
+                          "text-sm font-normal ml-1",
+                          isGoalMet ? "text-white/60" : "text-muted-foreground/60"
+                        )}>/ 70K</span>
+                      </p>
+                    </div>
+                    <div className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-full",
+                      isGoalMet ? "bg-white/20" : "bg-secondary/60"
                     )}>
-                      {isGoalMet ? '✓ Goal hit' : `${((weeklySteps / WEEKLY_GOAL) * 100).toFixed(0)}% of 70K`}
-                    </span>
+                      {isGoalMet ? (
+                        <>
+                          <span className="text-lg">🎯</span>
+                          <span className="text-sm font-semibold text-white">Goal!</span>
+                        </>
+                      ) : (
+                        <span className="text-xs font-medium text-muted-foreground">
+                          {((weeklySteps / WEEKLY_GOAL) * 100).toFixed(0)}%
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </>
               );
             })()}
           </motion.button>
@@ -501,13 +617,18 @@ export function HomePage() {
                         );
                       })}
 
-                      {/* Center text */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-2xl font-bold tabular-nums">
-                          {Math.round(((runningCount + workCount + gymCount) / (daysPassedThisMonth * 3)) * 100) || 0}%
-                        </span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Complete</span>
-                      </div>
+                      {/* Center text - Month progress */}
+                      {(() => {
+                        const monthPercent = Math.round((daysPassedThisMonth / monthDays.length) * 100);
+                        return (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-2xl font-bold tabular-nums">
+                              {monthPercent}%
+                            </span>
+                            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Month</span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 

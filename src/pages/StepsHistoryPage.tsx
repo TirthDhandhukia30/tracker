@@ -1,18 +1,48 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { format, eachDayOfInterval, parseISO } from 'date-fns';
-import { motion } from 'framer-motion';
+import { format, eachDayOfInterval, parseISO, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isSameWeek, isBefore } from 'date-fns';
+import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { START_DATE } from '@/lib/constants';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 import { haptics } from '@/lib/haptics';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+
+interface DayEntry {
+  date: string;
+  steps: number | null;
+}
+
+interface WeekGroup {
+  type: 'week';
+  weekStart: Date;
+  weekEnd: Date;
+  label: string;
+  totalSteps: number;
+  days: DayEntry[];
+  isComplete: boolean;
+}
+
+interface MonthGroup {
+  type: 'month';
+  monthStart: Date;
+  monthEnd: Date;
+  label: string;
+  totalSteps: number;
+  weeks: WeekGroup[];
+  isComplete: boolean;
+}
+
+
 
 export function StepsHistoryPage() {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
+  const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
+  const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
 
   const today = useMemo(() => new Date(), []);
   const todayStr = format(today, 'yyyy-MM-dd');
@@ -44,8 +74,8 @@ export function StepsHistoryPage() {
     },
   });
 
-  // Generate all days from START_DATE to today and merge with steps data
-  const stepsHistory = useMemo(() => {
+  // Generate grouped data structure
+  const { groupedHistory, stats } = useMemo(() => {
     const allDays = eachDayOfInterval({ start: START_DATE, end: today });
 
     const stepsMap = new Map<string, number | null>();
@@ -53,30 +83,115 @@ export function StepsHistoryPage() {
       stepsMap.set(entry.date, entry.daily_steps);
     });
 
-    return allDays
-      .map((day) => {
-        const dateStr = format(day, 'yyyy-MM-dd');
-        return {
-          date: dateStr,
-          steps: stepsMap.get(dateStr) ?? null,
-        };
-      })
-      .reverse();
-  }, [stepsEntries, today]);
+    const dayEntries: DayEntry[] = allDays.map((day) => {
+      const dateStr = format(day, 'yyyy-MM-dd');
+      return {
+        date: dateStr,
+        steps: stepsMap.get(dateStr) ?? null,
+      };
+    });
 
-  // Calculate stats
-  const stats = useMemo(() => {
-    const entriesWithSteps = stepsHistory.filter(e => e.steps !== null && e.steps > 0);
-    if (entriesWithSteps.length === 0) {
-      return { average: 0, total: 0, best: 0, daysLogged: 0 };
+    // Group days into weeks
+    const weekGroups: WeekGroup[] = [];
+    let currentWeekDays: DayEntry[] = [];
+    let currentWeekStart: Date | null = null;
+
+    for (const dayEntry of dayEntries) {
+      const entryDate = parseISO(dayEntry.date);
+      const weekStart = startOfWeek(entryDate, { weekStartsOn: 1 }); // Monday
+
+      if (!currentWeekStart || format(weekStart, 'yyyy-MM-dd') !== format(currentWeekStart, 'yyyy-MM-dd')) {
+        // Save previous week if exists
+        if (currentWeekDays.length > 0 && currentWeekStart) {
+          const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+          weekGroups.push({
+            type: 'week',
+            weekStart: currentWeekStart,
+            weekEnd,
+            label: `${format(currentWeekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`,
+            totalSteps: currentWeekDays.reduce((sum, d) => sum + (d.steps || 0), 0),
+            days: [...currentWeekDays],
+            isComplete: isBefore(weekEnd, today), // Complete if week end is before today
+          });
+        }
+        currentWeekStart = weekStart;
+        currentWeekDays = [];
+      }
+      currentWeekDays.push(dayEntry);
     }
 
-    const total = entriesWithSteps.reduce((sum, e) => sum + (e.steps || 0), 0);
-    const average = Math.round(total / entriesWithSteps.length);
-    const best = Math.max(...entriesWithSteps.map(e => e.steps || 0));
+    // Don't forget the last week
+    if (currentWeekDays.length > 0 && currentWeekStart) {
+      const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 });
+      weekGroups.push({
+        type: 'week',
+        weekStart: currentWeekStart,
+        weekEnd,
+        label: `${format(currentWeekStart, 'MMM d')} - ${format(weekEnd, 'MMM d')}`,
+        totalSteps: currentWeekDays.reduce((sum, d) => sum + (d.steps || 0), 0),
+        days: [...currentWeekDays],
+        isComplete: isBefore(weekEnd, today),
+      });
+    }
 
-    return { average, total, best, daysLogged: entriesWithSteps.length };
-  }, [stepsHistory]);
+    // Group weeks into months
+    const monthGroups: MonthGroup[] = [];
+    let currentMonthWeeks: WeekGroup[] = [];
+    let currentMonthStart: Date | null = null;
+
+    for (const weekGroup of weekGroups) {
+      const monthStart = startOfMonth(weekGroup.weekStart);
+
+      if (!currentMonthStart || format(monthStart, 'yyyy-MM') !== format(currentMonthStart, 'yyyy-MM')) {
+        // Save previous month if exists
+        if (currentMonthWeeks.length > 0 && currentMonthStart) {
+          const monthEnd = endOfMonth(currentMonthStart);
+          monthGroups.push({
+            type: 'month',
+            monthStart: currentMonthStart,
+            monthEnd,
+            label: format(currentMonthStart, 'MMMM yyyy'),
+            totalSteps: currentMonthWeeks.reduce((sum, w) => sum + w.totalSteps, 0),
+            weeks: [...currentMonthWeeks],
+            isComplete: isBefore(monthEnd, today),
+          });
+        }
+        currentMonthStart = monthStart;
+        currentMonthWeeks = [];
+      }
+      currentMonthWeeks.push(weekGroup);
+    }
+
+    // Don't forget the last month
+    if (currentMonthWeeks.length > 0 && currentMonthStart) {
+      const monthEnd = endOfMonth(currentMonthStart);
+      monthGroups.push({
+        type: 'month',
+        monthStart: currentMonthStart,
+        monthEnd,
+        label: format(currentMonthStart, 'MMMM yyyy'),
+        totalSteps: currentMonthWeeks.reduce((sum, w) => sum + w.totalSteps, 0),
+        weeks: [...currentMonthWeeks],
+        isComplete: isBefore(monthEnd, today),
+      });
+    }
+
+    // Calculate stats
+    const entriesWithSteps = dayEntries.filter(e => e.steps !== null && e.steps > 0);
+    const statsResult = entriesWithSteps.length === 0
+      ? { average: 0, total: 0, best: 0, daysLogged: 0 }
+      : {
+        total: entriesWithSteps.reduce((sum, e) => sum + (e.steps || 0), 0),
+        average: Math.round(entriesWithSteps.reduce((sum, e) => sum + (e.steps || 0), 0) / entriesWithSteps.length),
+        best: Math.max(...entriesWithSteps.map(e => e.steps || 0)),
+        daysLogged: entriesWithSteps.length,
+      };
+
+    return {
+      groupedHistory: monthGroups.reverse(), // Most recent first
+      stats: statsResult,
+    };
+  }, [stepsEntries, today]);
 
   const handleBack = () => {
     haptics.light();
@@ -92,12 +207,47 @@ export function StepsHistoryPage() {
     navigate(`/date/${dateStr}`);
   };
 
+  const toggleWeek = (weekKey: string) => {
+    haptics.selection();
+    setExpandedWeeks(prev => {
+      const next = new Set(prev);
+      if (next.has(weekKey)) {
+        next.delete(weekKey);
+      } else {
+        next.add(weekKey);
+      }
+      return next;
+    });
+  };
+
+  const toggleMonth = (monthKey: string) => {
+    haptics.selection();
+    setExpandedMonths(prev => {
+      const next = new Set(prev);
+      if (next.has(monthKey)) {
+        next.delete(monthKey);
+      } else {
+        next.add(monthKey);
+      }
+      return next;
+    });
+  };
+
   const formatSteps = (steps: number) => {
+    if (steps >= 1000) {
+      return `${(steps / 1000).toFixed(1)}K`;
+    }
+    return steps.toString();
+  };
+
+  const formatStepsShort = (steps: number) => {
     if (steps >= 1000) {
       return `${Math.round(steps / 1000)}K`;
     }
     return steps.toString();
   };
+
+  const WEEKLY_GOAL = 70000;
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24">
@@ -142,26 +292,14 @@ export function StepsHistoryPage() {
             className="glass-card rounded-3xl p-6"
           >
             {(() => {
-              // Calculate current week's steps
-              const getWeekStart = () => {
-                const now = new Date();
-                const dayOfWeek = now.getDay();
-                const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-                const monday = new Date(now);
-                monday.setDate(now.getDate() + mondayOffset);
-                return monday;
-              };
+              const weeklyGoal = WEEKLY_GOAL;
 
-              const weekStart = getWeekStart();
-              const weeklyGoal = 70000;
-
-              // Sum steps from this week
-              const thisWeekSteps = stepsHistory
-                .filter(e => {
-                  const entryDate = parseISO(e.date);
-                  return entryDate >= weekStart && entryDate <= today;
-                })
-                .reduce((sum, e) => sum + (e.steps || 0), 0);
+              // Find current week's data
+              const currentMonth = groupedHistory[0];
+              const currentWeek = currentMonth?.weeks.find(w =>
+                isSameWeek(w.weekStart, today, { weekStartsOn: 1 })
+              );
+              const thisWeekSteps = currentWeek?.totalSteps || 0;
 
               const weeklyPercent = Math.min((thisWeekSteps / weeklyGoal) * 100, 100);
               const isGoalMet = thisWeekSteps >= weeklyGoal;
@@ -224,17 +362,17 @@ export function StepsHistoryPage() {
                     <div className="flex-1 space-y-3">
                       <div>
                         <p className="text-2xl font-bold tabular-nums">
-                          {(thisWeekSteps / 1000).toFixed(1)}K
+                          {formatSteps(thisWeekSteps)}
                         </p>
                         <p className="text-xs text-muted-foreground">of 70K goal</p>
                       </div>
                       <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/30">
                         <div>
-                          <p className="text-sm font-bold tabular-nums">{formatSteps(stats.average)}</p>
+                          <p className="text-sm font-bold tabular-nums">{formatStepsShort(stats.average)}</p>
                           <p className="text-[10px] text-muted-foreground">Daily avg</p>
                         </div>
                         <div>
-                          <p className="text-sm font-bold tabular-nums">{formatSteps(stats.best)}</p>
+                          <p className="text-sm font-bold tabular-nums">{formatStepsShort(stats.best)}</p>
                           <p className="text-[10px] text-muted-foreground">Best day</p>
                         </div>
                       </div>
@@ -256,71 +394,151 @@ export function StepsHistoryPage() {
           <motion.div
             {...fadeInUp}
             transition={{ ...springTransition, delay: prefersReducedMotion ? 0 : 0.1 }}
-            className="glass-card rounded-2xl overflow-hidden"
+            className="space-y-3"
           >
-            {/* Table Header */}
-            <div className="flex items-center px-5 py-3 border-b border-border/50 bg-secondary/30">
-              <span className="flex-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Date
-              </span>
-              <span className="w-24 text-right text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                Steps
-              </span>
-            </div>
+            {groupedHistory.map((month) => {
+              const monthKey = format(month.monthStart, 'yyyy-MM');
+              const isMonthExpanded = expandedMonths.has(monthKey) || !month.isComplete;
 
-            {/* Table Body */}
-            <div className="divide-y divide-border/30">
-              {stepsHistory.map((entry, index) => {
-                const date = parseISO(entry.date);
-                const isToday = format(today, 'yyyy-MM-dd') === entry.date;
+              return (
+                <div key={monthKey} className="glass-card rounded-2xl overflow-hidden">
+                  {/* Month Header - Only show as collapsible if complete */}
+                  {month.isComplete ? (
+                    <button
+                      onClick={() => toggleMonth(monthKey)}
+                      className="w-full flex items-center justify-between px-5 py-4 hover:bg-secondary/30 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        {isMonthExpanded ? (
+                          <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                        )}
+                        <div>
+                          <p className="text-sm font-semibold">{month.label}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {month.weeks.length} weeks • {month.weeks.reduce((sum, w) => sum + w.days.filter(d => d.steps).length, 0)} days logged
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold tabular-nums">{formatSteps(month.totalSteps)}</p>
+                        <p className="text-[10px] text-muted-foreground">total</p>
+                      </div>
+                    </button>
+                  ) : (
+                    <div className="px-5 py-3 border-b border-border/30 bg-secondary/20">
+                      <p className="text-sm font-semibold">{month.label}</p>
+                    </div>
+                  )}
 
-                return (
-                  <motion.button
-                    key={entry.date}
-                    initial={prefersReducedMotion ? {} : { opacity: 0, x: -10 }}
-                    animate={prefersReducedMotion ? {} : { opacity: 1, x: 0 }}
-                    transition={{
-                      ...springTransition,
-                      delay: prefersReducedMotion ? 0 : Math.min(index * 0.02, 0.3),
-                    }}
-                    onClick={() => handleDayClick(entry.date)}
-                    className={cn(
-                      "w-full flex items-center px-5 py-4 hover:bg-secondary/30 transition-colors text-left",
-                      isToday && "bg-primary/5"
+                  {/* Month Content */}
+                  <AnimatePresence initial={false}>
+                    {(isMonthExpanded || !month.isComplete) && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="divide-y divide-border/20">
+                          {month.weeks.map((week) => {
+                            const weekKey = format(week.weekStart, 'yyyy-MM-dd');
+                            const isWeekExpanded = expandedWeeks.has(weekKey) || !week.isComplete;
+                            const isGoalMet = week.totalSteps >= WEEKLY_GOAL;
+
+                            return (
+                              <div key={weekKey}>
+                                {/* Week Header - Only collapsible if complete */}
+                                {week.isComplete ? (
+                                  <button
+                                    onClick={() => toggleWeek(weekKey)}
+                                    className="w-full flex items-center justify-between px-5 py-3 hover:bg-secondary/20 transition-colors"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-6 flex justify-center">
+                                        {isWeekExpanded ? (
+                                          <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                                        ) : (
+                                          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
+                                        )}
+                                      </div>
+                                      <div>
+                                        <p className="text-xs font-medium">{week.label}</p>
+                                      </div>
+                                    </div>
+                                    <span className={cn(
+                                      "text-sm font-semibold tabular-nums",
+                                      isGoalMet && "text-amber-400"
+                                    )}>{formatSteps(week.totalSteps)}</span>
+                                  </button>
+                                ) : null}
+
+                                {/* Week Days */}
+                                <AnimatePresence initial={false}>
+                                  {(isWeekExpanded || !week.isComplete) && (
+                                    <motion.div
+                                      initial={{ height: 0, opacity: 0 }}
+                                      animate={{ height: 'auto', opacity: 1 }}
+                                      exit={{ height: 0, opacity: 0 }}
+                                      transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.15 }}
+                                      className="overflow-hidden bg-secondary/10"
+                                    >
+                                      {week.days.map((day) => {
+                                        const date = parseISO(day.date);
+                                        const isToday = format(today, 'yyyy-MM-dd') === day.date;
+
+                                        return (
+                                          <button
+                                            key={day.date}
+                                            onClick={() => handleDayClick(day.date)}
+                                            className={cn(
+                                              "w-full flex items-center px-5 py-3 hover:bg-secondary/30 transition-colors text-left",
+                                              isToday && "bg-primary/5"
+                                            )}
+                                          >
+                                            <div className="flex-1 pl-9">
+                                              <span className={cn(
+                                                "text-sm",
+                                                isToday && "text-primary font-medium"
+                                              )}>
+                                                {format(date, 'EEE, MMM d')}
+                                              </span>
+                                              {isToday && (
+                                                <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                                  Today
+                                                </span>
+                                              )}
+                                            </div>
+                                            <div className="w-20 text-right">
+                                              {day.steps !== null && day.steps > 0 ? (
+                                                <span className="text-sm font-medium tabular-nums">
+                                                  {day.steps.toLocaleString()}
+                                                </span>
+                                              ) : (
+                                                <span className="text-sm text-muted-foreground">—</span>
+                                              )}
+                                            </div>
+                                          </button>
+                                        );
+                                      })}
+                                    </motion.div>
+                                  )}
+                                </AnimatePresence>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
                     )}
-                  >
-                    <div className="flex-1">
-                      <span className={cn(
-                        "text-sm font-medium",
-                        isToday && "text-primary"
-                      )}>
-                        {format(date, 'dd-MM-yy')}
-                      </span>
-                      <span className="text-xs text-muted-foreground ml-2">
-                        {format(date, 'EEE')}
-                      </span>
-                      {isToday && (
-                        <span className="ml-2 text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                          Today
-                        </span>
-                      )}
-                    </div>
-                    <div className="w-24 text-right">
-                      {entry.steps !== null && entry.steps > 0 ? (
-                        <span className="text-sm font-semibold tabular-nums">
-                          {entry.steps.toLocaleString()}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">—</span>
-                      )}
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </div>
+                  </AnimatePresence>
+                </div>
+              );
+            })}
 
-            {stepsHistory.length === 0 && (
-              <div className="px-5 py-12 text-center">
+            {groupedHistory.length === 0 && (
+              <div className="glass-card rounded-2xl px-5 py-12 text-center">
                 <span className="text-4xl text-muted-foreground/50 block mb-3">👟</span>
                 <p className="text-muted-foreground text-sm">No steps data yet</p>
                 <p className="text-muted-foreground/70 text-xs mt-1">

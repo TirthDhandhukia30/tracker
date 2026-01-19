@@ -8,6 +8,7 @@ import { DailyPage } from "@/pages/DailyPage";
 import { CalendarPage } from "@/pages/CalendarPage";
 import { WeightHistoryPage } from "@/pages/WeightHistoryPage";
 import { StepsHistoryPage } from "@/pages/StepsHistoryPage";
+import { AISearchPage } from "@/pages/AISearchPage";
 import { Toaster } from 'sonner';
 import { AppLayout } from '@/components/AppLayout';
 
@@ -62,7 +63,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="system" storageKey="daily-tracker-theme">
+      <ThemeProvider>
         <BrowserRouter>
           <Routes>
             <Route element={<AppLayout />}>
@@ -71,6 +72,7 @@ function App() {
               <Route path="/calendar" element={<CalendarPage />} />
               <Route path="/weight-history" element={<WeightHistoryPage />} />
               <Route path="/steps-history" element={<StepsHistoryPage />} />
+              <Route path="/ai-search" element={<AISearchPage />} />
             </Route>
           </Routes>
         </BrowserRouter>

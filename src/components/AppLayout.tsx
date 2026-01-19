@@ -2,8 +2,8 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { haptics } from '@/lib/haptics';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 
 // SVG nav icons
 const HomeIcon = ({ className }: { className?: string }) => (
@@ -25,18 +25,28 @@ const CalendarIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const NavIcon = ({ type, className }: { type: 'home' | 'calendar'; className?: string }) => (
-  type === 'home' ? <HomeIcon className={className} /> : <CalendarIcon className={className} />
-);
+type NavItemType = 'home' | 'calendar' | 'ai';
+
+const NavIcon = ({ type, className }: { type: NavItemType; className?: string }) => {
+  switch (type) {
+    case 'home':
+      return <HomeIcon className={className} />;
+    case 'calendar':
+      return <CalendarIcon className={className} />;
+    case 'ai':
+      return <Sparkles className={cn("w-[22px] h-[22px]", className)} />;
+  }
+};
 
 export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const prefersReducedMotion = useReducedMotion();
 
-  const navItems = [
-    { type: 'home' as const, label: 'Home', path: '/' },
-    { type: 'calendar' as const, label: 'Calendar', path: '/calendar' },
+  const navItems: { type: NavItemType; label: string; path: string }[] = [
+    { type: 'home', label: 'Home', path: '/' },
+    { type: 'ai', label: 'AI', path: '/ai-search' },
+    { type: 'calendar', label: 'Calendar', path: '/calendar' },
   ];
 
   const handleNavigation = (path: string) => {
@@ -50,7 +60,7 @@ export function AppLayout() {
         <Outlet />
       </main>
 
-      <nav 
+      <nav
         className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 z-50"
         role="navigation"
         aria-label="Main navigation"
@@ -58,6 +68,7 @@ export function AppLayout() {
         <div className="flex items-center justify-around h-16 max-w-md mx-auto px-2">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
+            const isAI = item.type === 'ai';
             return (
               <button
                 key={item.path}
@@ -66,15 +77,20 @@ export function AppLayout() {
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   "relative flex flex-col items-center justify-center w-full h-full space-y-1",
-                  isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  isActive
+                    ? isAI ? "text-violet-400" : "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {isActive && (
                   <motion.div
                     layoutId="nav-indicator"
-                    className="absolute top-0 w-8 h-1 rounded-full bg-primary"
-                    transition={prefersReducedMotion 
-                      ? { duration: 0 } 
+                    className={cn(
+                      "absolute top-0 w-8 h-1 rounded-full",
+                      isAI ? "bg-violet-400" : "bg-primary"
+                    )}
+                    transition={prefersReducedMotion
+                      ? { duration: 0 }
                       : { type: "spring", stiffness: 500, damping: 30 }
                     }
                   />
@@ -84,12 +100,6 @@ export function AppLayout() {
               </button>
             );
           })}
-          
-          {/* Theme Toggle */}
-          <div className="flex flex-col items-center justify-center w-full h-full space-y-1 text-muted-foreground">
-            <ThemeToggle />
-            <span className="text-[10px] font-medium">Theme</span>
-          </div>
         </div>
       </nav>
     </div>
