@@ -13,10 +13,9 @@ import {
   Delete02Icon,
   Tick01Icon,
   Briefcase01Icon,
-  HistoryIcon,
+  Clock01Icon,
   SparklesIcon,
-  RunningShoesIcon,
-  FireIcon
+  RunningShoesIcon
 } from 'hugeicons-react';
 import type { GymType, Exercise } from '@/types';
 import { cn } from '@/lib/utils';
@@ -249,7 +248,7 @@ export function DailyPage() {
             className="-ml-2 rounded-xl"
             aria-label="Go back to home"
           >
-            <ArrowLeft className="h-5 w-5" aria-hidden="true" />
+            <ArrowLeft01Icon className="h-5 w-5" aria-hidden="true" />
           </Button>
           <h1 className="text-sm font-semibold">{format(parseISO(dateStr), 'EEEE, MMM d')}</h1>
           <DayProgressRing />
@@ -299,7 +298,7 @@ export function DailyPage() {
                 </svg>
                 <span className="font-medium">Running</span>
               </div>
-              {entry.running && <Check className="h-5 w-5" aria-hidden="true" />}
+              {entry.running && <Tick01Icon className="h-5 w-5" aria-hidden="true" />}
             </motion.button>
 
             {entry.running && (
@@ -335,10 +334,10 @@ export function DailyPage() {
               )}
             >
               <div className="flex items-center gap-3">
-                <Briefcase className="h-5 w-5" aria-hidden="true" />
+                <Briefcase01Icon className="h-5 w-5" aria-hidden="true" />
                 <span className="font-medium">Work</span>
               </div>
-              {entry.work_done && <Check className="h-5 w-5" aria-hidden="true" />}
+              {entry.work_done && <Tick01Icon className="h-5 w-5" aria-hidden="true" />}
             </motion.button>
 
             {entry.work_done && (
@@ -378,13 +377,13 @@ export function DailyPage() {
               </svg>
               <span className="font-medium">Streak</span>
             </div>
-            {entry.streak_check && <Check className="h-5 w-5" aria-hidden="true" />}
+            {entry.streak_check && <Tick01Icon className="h-5 w-5" aria-hidden="true" />}
           </motion.button>
 
           {/* Steps */}
           <div className="glass-card rounded-2xl h-14 flex items-center justify-between px-5">
             <div className="flex items-center gap-3">
-              <Footprints className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              <RunningShoesIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
               <span className="font-medium">Steps</span>
             </div>
             <div className="flex items-center gap-1">
@@ -413,7 +412,7 @@ export function DailyPage() {
         {/* The One Question */}
         <section className="space-y-3" aria-label="Daily reflection">
           <div className="flex items-center gap-2 pl-1">
-            <Sparkles className="h-3 w-3 text-primary/60" aria-hidden="true" />
+            <SparklesIcon className="h-3 w-3 text-primary/60" aria-hidden="true" />
             <label htmlFor="daily-note" className="text-sm font-medium text-foreground/80">{dailyPrompt}</label>
           </div>
           <Textarea
@@ -525,7 +524,7 @@ export function DailyPage() {
                   aria-label={`Copy exercises from your last ${entry.gym_type} workout`}
                   className="w-full py-3 text-sm text-primary/70 hover:text-primary font-medium flex items-center justify-center gap-2 glass-subtle rounded-2xl hover:shadow-glass transition-all"
                 >
-                  <History className="h-4 w-4" aria-hidden="true" />
+                  <Clock01Icon className="h-4 w-4" aria-hidden="true" />
                   Repeat last {entry.gym_type}
                 </button>
 
@@ -566,7 +565,7 @@ export function DailyPage() {
                             aria-label={`Remove ${exercise.name || 'exercise'}`}
                             className="min-w-[44px] min-h-[44px] flex items-center justify-center opacity-60 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 text-muted-foreground hover:text-destructive active:text-destructive transition-all rounded-xl hover:bg-destructive/10 active:bg-destructive/20"
                           >
-                            <Trash2 className="h-5 w-5" aria-hidden="true" />
+                            <Delete02Icon className="h-5 w-5" aria-hidden="true" />
                           </button>
                         </div>
 
@@ -681,7 +680,7 @@ export function DailyPage() {
                             aria-label={`Add another set to ${exercise.name || 'exercise'}`}
                             className="w-full min-h-[48px] mt-3 flex items-center justify-center gap-2 text-sm font-semibold text-primary/70 hover:text-primary active:text-primary rounded-2xl border-2 border-dashed border-primary/20 hover:border-primary/40 active:border-primary/50 hover:bg-primary/5 active:bg-primary/10 transition-all"
                           >
-                            <Plus className="h-5 w-5" />
+                            <PlusSignIcon className="h-5 w-5" />
                             Add Set
                           </button>
                         </div>
@@ -697,7 +696,7 @@ export function DailyPage() {
                     className="w-full h-14 flex items-center justify-center gap-2 glass-card rounded-3xl text-sm font-semibold text-foreground/80 hover:text-foreground hover:shadow-glass-lg transition-all"
                   >
                     <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center">
-                      <Plus className="h-4 w-4 text-primary" aria-hidden="true" />
+                      <PlusSignIcon className="h-4 w-4 text-primary" aria-hidden="true" />
                     </div>
                     Add Exercise
                   </motion.button>
